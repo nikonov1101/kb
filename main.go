@@ -15,10 +15,6 @@ import (
 func main() {
 	var rootCmd = &cobra.Command{
 		Use: "kb",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cmd.Printf("here?\n")
-			return nil
-		},
 	}
 
 	srcDir := rootCmd.PersistentFlags().String("src", "./src", "path to source directory")
