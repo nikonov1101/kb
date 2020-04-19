@@ -11,7 +11,7 @@ import (
 func list(root string) ([]*Source, error) {
 	var fs []*Source
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
+		if !(info.IsDir() || info.Name()[0] == '.') {
 			ff, err := openSourceFile(path)
 			if err != nil {
 				return err

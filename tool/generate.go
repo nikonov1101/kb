@@ -44,7 +44,7 @@ func parseFile(p string, sourceBytes []byte) (*Source, error) {
 	parts := strings.SplitN(baseName, "-", 2)
 	num, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		panic("malformed file name in " + baseName)
+		panic("malformed file name in " + p)
 	}
 
 	// look for headers
@@ -193,7 +193,7 @@ func Generate(srcDir, dstDir string) error {
 			return fmt.Errorf("failed to write to %s: %v", out, err)
 		}
 
-		notesListHTML += fmt.Sprintf(`<li><a href="%s">%s %s</a></li>`+"\n", base, f.title, f.tags)
+		notesListHTML += fmt.Sprintf(`<li><a href="%s">%04d: %s %s</a></li>`+"\n", base, f.num, f.title, f.tags)
 		fmt.Printf("  output in %s\n", path.Clean(out))
 	}
 
