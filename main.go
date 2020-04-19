@@ -12,13 +12,15 @@ import (
 
 //go:generate go run templates/gen.go
 
+const rootDir = "/Users/alex/src/kb"
+
 func main() {
 	var rootCmd = &cobra.Command{
 		Use: "kb",
 	}
 
-	srcDir := rootCmd.PersistentFlags().String("src", "./src", "path to source directory")
-	dstDir := rootCmd.PersistentFlags().String("www", "./www", "path to results directory")
+	srcDir := rootCmd.PersistentFlags().String("src", rootDir+"/src", "path to source directory")
+	dstDir := rootCmd.PersistentFlags().String("www", rootDir+"/www", "path to results directory")
 
 	var listCmd = &cobra.Command{
 		Use:   "list",
