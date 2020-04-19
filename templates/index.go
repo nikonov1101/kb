@@ -10,7 +10,7 @@ var Index = []byte(`
     <title>kb 101</title>
     <style>
         body {
-            font-size: 16px;
+            font-size: 1.4em;
             font-family: "Courier New", Courier, monospace;
         }
         .body {
@@ -33,4 +33,5 @@ var Index = []byte(`
 <div class="heading"><h1>kb 101</h1></div>
 <div class="body">${CONTENT}</div>
 </body>
-</html>`) // end of indexTemplate
+</html>
+`) // end of indexTemplate

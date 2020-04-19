@@ -10,7 +10,7 @@ var Page = []byte(`
     <title>${TITLE}</title>
     <style>
         body {
-            font-size: 16px;
+            font-size: 1.4em;
             font-family: "Courier New", Courier, monospace;
         }
         .body {
@@ -44,4 +44,5 @@ var Page = []byte(`
         ${CONTENT}
     </div>
 </body>
-</html>`) // end of pageTemplate
+</html>
+`) // end of pageTemplate
