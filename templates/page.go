@@ -27,12 +27,17 @@ var Page = []byte(`
             padding-left: 12px;
             border-left: 2px solid #afafaf;
         }
+
+        p > code {
+            border-bottom: 1px solid #afafaf;
+            background: beige;
+        }
     </style>
 </head>
 <body>
     <div class="heading">
         <h1>${TITLE}</h1>
-        <h3>${TAGS}</h3>
+        <h3>tags: ${TAGS}</h3>
     </div>
 
     <div class="body">
