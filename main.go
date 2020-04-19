@@ -7,8 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sshaman1101/glogue/tool"
+	"github.com/sshaman1101/kb/tool"
 )
+
+//go:generate go run templates/gen.go
 
 func main() {
 	var rootCmd = &cobra.Command{

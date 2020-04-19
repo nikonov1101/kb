@@ -13,6 +13,8 @@ import (
 
 	"github.com/microcosm-cc/bluemonday"
 	"gopkg.in/russross/blackfriday.v2"
+
+	"github.com/sshaman1101/kb/templates"
 )
 
 type Source struct {
@@ -33,6 +35,11 @@ type Source struct {
 	private bool
 	// raw markdown content
 	data []byte
+}
+
+func (s *Source) pageURI(dir string) string {
+	base := s.baseName + ".html"
+	return path.Join(dir, base)
 }
 
 // parseFile turns the sourceBytes into
@@ -135,13 +142,15 @@ func renderBody(data []byte) []byte {
 	return p.SanitizeBytes(unsafe)
 }
 
-// renderTemplate adds Source's headers and HTML body
+// generatePage adds Source's headers and HTML body
 // to the template, returns fill page data
-func renderTemplate(src *Source, html, tmpl []byte) []byte {
+func generatePage(src *Source, html []byte) []byte {
 	title := []byte("${TITLE}")
 	tags := []byte("${TAGS}")
 	content := []byte("${CONTENT}")
 	t := strings.Join(src.tags, ", ")
+
+	tmpl := templates.Page
 
 	tmpl = bytes.Replace(tmpl, title, []byte(src.title), -1)
 	tmpl = bytes.Replace(tmpl, tags, []byte(t), -1)
@@ -150,18 +159,23 @@ func renderTemplate(src *Source, html, tmpl []byte) []byte {
 	return tmpl
 }
 
+// generateIndex generate index page with links to notes given as `fs`
+func generateIndex(dstDir string, fs []*Source) []byte {
+	buf := bytes.NewBufferString("<ul>\n")
+	for _, ff := range fs {
+		buf.WriteString(
+			fmt.Sprintf("<li><a href=\"%s\">%04d: %s %s</a></li>\n",
+				ff.pageURI(dstDir), ff.num, ff.title, ff.tags),
+		)
+	}
+	buf.WriteString("</ul>\n")
+
+	tmpl := templates.Index
+	return bytes.Replace(tmpl, []byte("${CONTENT}"), buf.Bytes(), 1)
+}
+
 func Generate(srcDir, dstDir string) error {
 	start := time.Now()
-
-	pageTemplate, err := ioutil.ReadFile("templates/page.html")
-	if err != nil {
-		return fmt.Errorf("failed to read page template: %v", err)
-	}
-
-	indexTemplate, err := ioutil.ReadFile("templates/index.html")
-	if err != nil {
-		return fmt.Errorf("failed to read the index template: %v", err)
-	}
 
 	if err := os.RemoveAll(dstDir); err != nil {
 		return fmt.Errorf("failed to clean the dst dir: %v", err)
@@ -176,34 +190,30 @@ func Generate(srcDir, dstDir string) error {
 		return err
 	}
 
-	fmt.Printf("Found %d source files\n", len(fs))
-
-	notesListHTML := "<ul>\n"
+	fmt.Printf("Found %s source file(s)\n", green(strconv.Itoa(len(fs))))
 	for i := len(fs) - 1; i >= 0; i-- {
 		f := fs[i]
-		fmt.Printf("  processing %q (%s) ...\n", f.title, f.path)
+		fmt.Printf("  processing %s...\n", yellow(f.path))
 
 		// generate HTML from source's markdown
 		html := renderBody(f.data)
-		html = renderTemplate(f, html, pageTemplate)
+		// add content html to the rest of the page
+		html = generatePage(f, html)
+		// where to store HTML result
+		out := f.pageURI(dstDir)
 
-		base := f.baseName + ".html"
-		out := path.Join(dstDir, base)
 		if err := ioutil.WriteFile(out, html, 0644); err != nil {
 			return fmt.Errorf("failed to write to %s: %v", out, err)
 		}
-
-		notesListHTML += fmt.Sprintf(`<li><a href="%s">%04d: %s %s</a></li>`+"\n", base, f.num, f.title, f.tags)
-		fmt.Printf("  output in %s\n", path.Clean(out))
 	}
 
-	// append notes list to the template
-	notesListHTML += "</ul>\n"
-	ix := strings.Replace(string(indexTemplate), "${CONTENT}", notesListHTML, 1)
-	if err := ioutil.WriteFile(path.Join(dstDir, "index.html"), []byte(ix), 0644); err != nil {
+	index := generateIndex(dstDir, fs)
+	indexPath := path.Join(dstDir, "index.html")
+	fmt.Printf("Writing %s\n", yellow(indexPath))
+	if err := ioutil.WriteFile(indexPath, index, 0644); err != nil {
 		return fmt.Errorf("failed to write index.html: %v", err)
 	}
 
-	fmt.Printf("Done in %s.\n", time.Since(start))
+	fmt.Printf("Done in %s.\n", green(time.Since(start).String()))
 	return nil
 }
