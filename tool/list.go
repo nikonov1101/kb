@@ -36,7 +36,7 @@ func ListSources(root string) error {
 	}
 
 	for _, ff := range fs {
-		fmt.Printf("%s: %q %s\n", ff.path, ff.title, ff.tags)
+		fmt.Printf("%s %q %s\n", yellow(ff.path), ff.title, ff.tags)
 	}
 
 	return nil

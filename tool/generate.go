@@ -159,9 +159,10 @@ func generatePage(src *Source, html []byte) []byte {
 }
 
 // generateIndex generate index page with links to notes given as `fs`
-func generateIndex(dstDir string, fs []*Source) []byte {
+func generateIndex(fs []*Source) []byte {
 	buf := bytes.NewBufferString("<ul>\n")
-	for _, ff := range fs {
+	for i := len(fs) - 1; i >= 0; i-- {
+		ff := fs[i]
 		buf.WriteString(
 			fmt.Sprintf("<li><a href=\"%s\">%04d: %s %s</a></li>\n",
 				ff.pageURI(), ff.num, ff.title, ff.tags),
@@ -190,8 +191,7 @@ func Generate(srcDir, dstDir string) error {
 	}
 
 	fmt.Printf("Found %s source file(s)\n", green(strconv.Itoa(len(fs))))
-	for i := len(fs) - 1; i >= 0; i-- {
-		f := fs[i]
+	for _, f := range fs {
 		fmt.Printf("  processing %s...\n", yellow(f.path))
 
 		// generate HTML from source's markdown
@@ -206,7 +206,7 @@ func Generate(srcDir, dstDir string) error {
 		}
 	}
 
-	index := generateIndex(dstDir, fs)
+	index := generateIndex(fs)
 	indexPath := path.Join(dstDir, "index.html")
 	fmt.Printf("Writing %s\n", yellow(indexPath))
 	if err := ioutil.WriteFile(indexPath, index, 0644); err != nil {
