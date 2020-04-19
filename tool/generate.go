@@ -37,9 +37,8 @@ type Source struct {
 	data []byte
 }
 
-func (s *Source) pageURI(dir string) string {
-	base := s.baseName + ".html"
-	return path.Join(dir, base)
+func (s *Source) pageURI() string {
+	return s.baseName + ".html"
 }
 
 // parseFile turns the sourceBytes into
@@ -165,7 +164,7 @@ func generateIndex(dstDir string, fs []*Source) []byte {
 	for _, ff := range fs {
 		buf.WriteString(
 			fmt.Sprintf("<li><a href=\"%s\">%04d: %s %s</a></li>\n",
-				ff.pageURI(dstDir), ff.num, ff.title, ff.tags),
+				ff.pageURI(), ff.num, ff.title, ff.tags),
 		)
 	}
 	buf.WriteString("</ul>\n")
@@ -200,9 +199,9 @@ func Generate(srcDir, dstDir string) error {
 		// add content html to the rest of the page
 		html = generatePage(f, html)
 		// where to store HTML result
-		out := f.pageURI(dstDir)
+		out := f.pageURI()
 
-		if err := ioutil.WriteFile(out, html, 0644); err != nil {
+		if err := ioutil.WriteFile(path.Join(dstDir, out), html, 0644); err != nil {
 			return fmt.Errorf("failed to write to %s: %v", out, err)
 		}
 	}

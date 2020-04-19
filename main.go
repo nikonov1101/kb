@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 
 	"github.com/spf13/cobra"
 
@@ -41,17 +42,36 @@ func main() {
 		Short: "Create new empty note",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return tool.New(*srcDir, args[0])
+			file, err := tool.New(*srcDir, args[0])
+			if err != nil {
+				return err
+			}
+
+			if err := exec.Command("/usr/local/bin/subl", "-a", file).Run(); err != nil {
+				fmt.Printf("failed to open editor: %v\n", err)
+			}
+
+			return nil
 		},
 	}
 
 	var serveCmd = &cobra.Command{
 		Use:   "serve",
-		Short: "Serve files from the result dir",
+		Short: "Generate pages and start http server in result dir",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := tool.Generate(*srcDir, *dstDir); err != nil {
+				return err
+			}
+
 			addr := cmd.Flag("addr").Value.String()
 			fmt.Printf("Starting http server on %s...\n", addr)
 			http.Handle("/", http.FileServer(http.Dir(*dstDir)))
+
+			// note: macos only
+			if err := exec.Command("/usr/bin/open", "http://"+addr).Run(); err != nil {
+				fmt.Printf("failed to invoke `open` command: %v\n", err)
+			}
+
 			return http.ListenAndServe(addr, nil)
 		},
 	}
