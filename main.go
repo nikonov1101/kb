@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 
@@ -59,20 +58,11 @@ func main() {
 		Use:   "serve",
 		Short: "Generate pages and start http server in result dir",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := tool.Generate(*srcDir, *dstDir); err != nil {
-				return err
-			}
-
-			addr := cmd.Flag("addr").Value.String()
-			fmt.Printf("Starting http server on %s...\n", addr)
-			http.Handle("/", http.FileServer(http.Dir(*dstDir)))
-
-			// note: macos only
-			if err := exec.Command("/usr/bin/open", "http://"+addr).Run(); err != nil {
-				fmt.Printf("failed to invoke `open` command: %v\n", err)
-			}
-
-			return http.ListenAndServe(addr, nil)
+			return tool.Serve(
+				*srcDir,
+				*dstDir,
+				cmd.Flag("addr").Value.String(),
+			)
 		},
 	}
 	serveCmd.PersistentFlags().String("addr", "127.0.0.1:8000", "address to listen to")
