@@ -48,7 +48,7 @@ func main() {
 				return err
 			}
 
-			if err := exec.Command("/usr/local/bin/subl", "-a", file).Run(); err != nil {
+			if err := exec.Command("/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl", "-a", file).Run(); err != nil {
 				fmt.Printf("failed to open editor: %v\n", err)
 			}
 

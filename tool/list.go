@@ -8,11 +8,11 @@ import (
 )
 
 // returns sorted list of files in the source's root directory
-func list(root string) ([]*Source, error) {
+func listSources(root string) ([]*Source, error) {
 	var fs []*Source
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if !(info.IsDir() || info.Name()[0] == '.') {
-			ff, err := openSourceFile(path)
+			ff, err := loadSourceFile(path)
 			if err != nil {
 				return err
 			}
@@ -30,13 +30,13 @@ func list(root string) ([]*Source, error) {
 }
 
 func ListSources(root string) error {
-	fs, err := list(root)
+	fs, err := listSources(root)
 	if err != nil {
 		return err
 	}
 
 	for _, ff := range fs {
-		fmt.Printf("%s %q %s\n", yellow(ff.path), ff.title, ff.tags)
+		fmt.Printf("%s %q\n", yellow(ff.path), ff.title)
 	}
 
 	return nil

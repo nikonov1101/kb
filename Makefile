@@ -1,11 +1,8 @@
 default:
 	go run main.go --help
 
-generate:
-	go generate ./...
-
-build: generate
+build:
 	go build -o kb main.go
 
-install: generate
+install:
 	go install

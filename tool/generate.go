@@ -3,7 +3,6 @@ package tool
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
@@ -27,14 +26,14 @@ type Source struct {
 	// sequential file number
 	num int64
 
-	// title from headers
+	// note title, from headers
 	title string
-	// tags list from headers
-	tags []string
-	// private flag from headers
+	// publication date (mon, year), from headers
+	date string
+	// private flag, from headers
 	private bool
 	// raw markdown content
-	data []byte
+	body []byte
 }
 
 func (s *Source) pageURI() string {
@@ -43,14 +42,14 @@ func (s *Source) pageURI() string {
 
 // parseFile turns the sourceBytes into
 // ready-to-render *Source
-func parseFile(p string, sourceBytes []byte) (*Source, error) {
+func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 	// parse path and parts
-	baseName := strings.Split(path.Base(p), ".")[0]
+	baseName := strings.Split(path.Base(filePath), ".")[0]
 	// parse file number,
 	parts := strings.SplitN(baseName, "-", 2)
 	num, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		panic("malformed file name in " + p)
+		panic("malformed file name: " + filePath)
 	}
 
 	// look for headers
@@ -64,9 +63,9 @@ func parseFile(p string, sourceBytes []byte) (*Source, error) {
 	rawHeaders := sourceBytes[:delim]
 	lines := bytes.Split(rawHeaders, []byte("\n"))
 
-	m := &Source{
-		data:     body,
-		path:     p,
+	source := &Source{
+		body:     body,
+		path:     filePath,
 		baseName: baseName,
 		num:      num,
 	}
@@ -87,40 +86,36 @@ func parseFile(p string, sourceBytes []byte) (*Source, error) {
 
 		switch key {
 		case "title":
-			m.title = value
-		case "tags":
-			tags := strings.Split(value, " ")
-			for _, t := range tags {
-				m.tags = append(m.tags, strings.TrimSpace(t))
-			}
+			source.title = value
 		case "private":
-			m.private = value == "true"
+			source.private = value == "true"
+		case "date":
+			source.date = value
 		default:
 			return nil, fmt.Errorf("unknown tag %s", parts[0])
 		}
 	}
 
-	return m, nil
+	return source, nil
 }
 
-// openSourceFile loads source file from a disk and parse its headers
-func openSourceFile(p string) (*Source, error) {
-	text, err := ioutil.ReadFile(p)
+// loadSourceFile from disk and parse its content
+func loadSourceFile(filePath string) (*Source, error) {
+	text, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)
 	}
 
-	meta, err := parseFile(p, text)
+	source, err := parseFile(filePath, text)
 	if err != nil {
 		panic(err)
 	}
 
-	meta.path = p
-	return meta, nil
+	return source, nil
 }
 
-// renderBody turns raw markdown bytes into the HTML markup
-func renderBody(data []byte) []byte {
+// markdownToHTML turns raw markdown bytes into the HTML markup
+func markdownToHTML(data []byte) []byte {
 	renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
 		// Flags: blackfriday.HrefTargetBlank | blackfriday.NofollowLinks | blackfriday.NoreferrerLinks | blackfriday.TOC,
 		Flags: blackfriday.HrefTargetBlank | blackfriday.NofollowLinks | blackfriday.NoreferrerLinks,
@@ -145,33 +140,29 @@ func renderBody(data []byte) []byte {
 // to the template, returns fill page data
 func generatePage(src *Source, html []byte) []byte {
 	title := []byte("${TITLE}")
-	tags := []byte("${TAGS}")
+	date := []byte("${DATE}")
 	content := []byte("${CONTENT}")
-	t := strings.Join(src.tags, ", ")
 
-	tmpl := templates.Page
-
-	tmpl = bytes.Replace(tmpl, title, []byte(src.title), -1)
-	tmpl = bytes.Replace(tmpl, tags, []byte(t), -1)
-	tmpl = bytes.Replace(tmpl, content, html, -1)
+	tmpl := bytes.ReplaceAll(templates.Page, title, []byte(src.title))
+	tmpl = bytes.ReplaceAll(tmpl, date, []byte(src.date))
+	tmpl = bytes.ReplaceAll(tmpl, content, html)
 
 	return tmpl
 }
 
 // generateIndex generate index page with links to notes given as `fs`
-func generateIndex(fs []*Source) []byte {
-	buf := bytes.NewBufferString("<ul>\n")
-	for i := len(fs) - 1; i >= 0; i-- {
-		ff := fs[i]
-		buf.WriteString(
-			fmt.Sprintf("<li><a href=\"%s\">%04d: %s %s</a></li>\n",
-				ff.pageURI(), ff.num, ff.title, ff.tags),
-		)
-	}
-	buf.WriteString("</ul>\n")
+func generateIndex(sources []*Source) []byte {
+	const template = `<div class="c"><a href="%s">%04d: %s</a><div class="d">%s</div></div>`
 
-	tmpl := templates.Index
-	return bytes.Replace(tmpl, []byte("${CONTENT}"), buf.Bytes(), 1)
+	linksHTML := ""
+	for i := len(sources) - 1; i >= 0; i-- {
+		src := sources[i]
+		linksHTML += fmt.Sprintf(template, src.pageURI(), src.num, src.title, src.date)
+	}
+
+	page := bytes.ReplaceAll(templates.Page, []byte("${CONTENT}"), []byte(linksHTML))
+	page = bytes.ReplaceAll(page, []byte("${TITLE}"), []byte("Не с начала"))
+	return page
 }
 
 func Generate(srcDir, dstDir string) error {
@@ -185,31 +176,31 @@ func Generate(srcDir, dstDir string) error {
 		return fmt.Errorf("failed to create the dst dir: %v", err)
 	}
 
-	fs, err := list(srcDir)
+	list, err := listSources(srcDir)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Found %s source file(s)\n", green(strconv.Itoa(len(fs))))
-	for _, f := range fs {
-		fmt.Printf("  processing %s...\n", yellow(f.path))
+	fmt.Printf("Found %s source file(s)\n", green(strconv.Itoa(len(list))))
+	for _, src := range list {
+		fmt.Printf("  processing %s...\n", yellow(src.path))
 
 		// generate HTML from source's markdown
-		html := renderBody(f.data)
+		html := markdownToHTML(src.body)
 		// add content html to the rest of the page
-		html = generatePage(f, html)
+		page := generatePage(src, html)
 		// where to store HTML result
-		out := f.pageURI()
+		out := src.pageURI()
 
-		if err := ioutil.WriteFile(path.Join(dstDir, out), html, 0644); err != nil {
+		if err := os.WriteFile(path.Join(dstDir, out), page, 0644); err != nil {
 			return fmt.Errorf("failed to write to %s: %v", out, err)
 		}
 	}
 
-	index := generateIndex(fs)
+	index := generateIndex(list)
 	indexPath := path.Join(dstDir, "index.html")
 	fmt.Printf("Writing %s\n", yellow(indexPath))
-	if err := ioutil.WriteFile(indexPath, index, 0644); err != nil {
+	if err := os.WriteFile(indexPath, index, 0644); err != nil {
 		return fmt.Errorf("failed to write index.html: %v", err)
 	}
 
