@@ -143,7 +143,9 @@ func generatePage(src *Source, html []byte) []byte {
 	date := []byte("${DATE}")
 	content := []byte("${CONTENT}")
 
-	tmpl := bytes.ReplaceAll(templates.Page, title, []byte(src.title))
+	const backButton = `<a class="ba" href="/index.html">↩ &nbsp;</a>`
+
+	tmpl := bytes.ReplaceAll(templates.Page, title, []byte(backButton+src.title))
 	tmpl = bytes.ReplaceAll(tmpl, date, []byte(src.date))
 	tmpl = bytes.ReplaceAll(tmpl, content, html)
 
