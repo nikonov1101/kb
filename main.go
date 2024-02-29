@@ -7,11 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sshaman1101/kb/tool"
+	"github.com/nikonov1101/kb/tool"
 )
 
-//go:generate go run templates/gen.go
-
+// TODO: env var of PWD?
 const rootDir = "/Users/alex/src/kb"
 
 func main() {

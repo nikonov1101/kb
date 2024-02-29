@@ -10,7 +10,7 @@ import (
 
 const newFileContent = `title: $name$
 date: $date$
-private: false
+visibility: published
 ---
 `
 

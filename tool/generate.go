@@ -13,7 +13,13 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"gopkg.in/russross/blackfriday.v2"
 
-	"github.com/sshaman1101/kb/templates"
+	"github.com/nikonov1101/kb/templates"
+)
+
+const (
+	published = "published"
+	private   = "private"
+	hidden    = "none"
 )
 
 type Source struct {
@@ -30,8 +36,11 @@ type Source struct {
 	title string
 	// publication date (mon, year), from headers
 	date string
-	// private flag, from headers
-	private bool
+	// visibility of rendered page:
+	// "published" - rendered, listed on index page
+	// "private" - rendered, not listed on index page
+	// "none" - not rendered
+	visibility string
 	// raw markdown content
 	body []byte
 }
@@ -87,10 +96,15 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 		switch key {
 		case "title":
 			source.title = value
-		case "private":
-			source.private = value == "true"
 		case "date":
 			source.date = value
+		case "visibility":
+			switch value {
+			case published, private:
+				source.visibility = value
+			default:
+				source.visibility = hidden
+			}
 		default:
 			return nil, fmt.Errorf("unknown tag %s", parts[0])
 		}
@@ -159,6 +173,11 @@ func generateIndex(sources []*Source) []byte {
 	linksHTML := ""
 	for i := len(sources) - 1; i >= 0; i-- {
 		src := sources[i]
+		if src.visibility == private {
+			// do not list private notes
+			continue
+		}
+
 		linksHTML += fmt.Sprintf(template, src.pageURI(), src.num, src.title, src.date)
 	}
 
@@ -185,7 +204,12 @@ func Generate(srcDir, dstDir string) error {
 
 	fmt.Printf("Found %s source file(s)\n", green(strconv.Itoa(len(list))))
 	for _, src := range list {
-		fmt.Printf("  processing %s...\n", yellow(src.path))
+		if src.visibility == hidden {
+			fmt.Printf("  %s hidden %s...\n", yellow("skipping"), src.path)
+			continue
+		}
+
+		fmt.Printf("  %s %s...\n", green("processing"), src.path)
 
 		// generate HTML from source's markdown
 		html := markdownToHTML(src.body)
