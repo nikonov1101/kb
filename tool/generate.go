@@ -20,6 +20,8 @@ const (
 	published = "published"
 	private   = "private"
 	hidden    = "none"
+
+	dateFormat = "02 Jan 2006"
 )
 
 type Source struct {
@@ -34,15 +36,17 @@ type Source struct {
 
 	// note title, from headers
 	title string
-	// publication date (mon, year), from headers
-	date string
+	// publication date described by dateFormat, from headers
+	date time.Time
 	// visibility of rendered page:
 	// "published" - rendered, listed on index page
 	// "private" - rendered, not listed on index page
 	// "none" - not rendered
 	visibility string
 	// raw markdown content
-	body []byte
+	markdown []byte
+	// cached generated html
+	html []byte
 }
 
 func (s *Source) pageURI() string {
@@ -73,7 +77,7 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 	lines := bytes.Split(rawHeaders, []byte("\n"))
 
 	source := &Source{
-		body:     body,
+		markdown: body,
 		path:     filePath,
 		baseName: baseName,
 		num:      num,
@@ -97,7 +101,11 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 		case "title":
 			source.title = value
 		case "date":
-			source.date = value
+			v, err := time.Parse(dateFormat, value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse %q as %q: %v", value, dateFormat, err)
+			}
+			source.date = v
 		case "visibility":
 			switch value {
 			case published, private:
@@ -109,6 +117,8 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 			return nil, fmt.Errorf("unknown tag %s", parts[0])
 		}
 	}
+
+	source.html = markdownToHTML(source.markdown)
 
 	return source, nil
 }
@@ -150,12 +160,11 @@ func markdownToHTML(data []byte) []byte {
 	return p.SanitizeBytes(unsafe)
 }
 
-// generatePage adds Source's headers and HTML body
-// to the template, returns fill page data
-func generatePage(src *Source, html []byte) []byte {
+// generatePage makes a complete web-page from given source
+func generatePage(src *Source) []byte {
 	tmpl := bytes.ReplaceAll(templates.Page, []byte("${TITLE}"), []byte(src.title))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(src.date))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${CONTENT}"), html)
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(src.date.Format(dateFormat)))
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${CONTENT}"), src.html)
 
 	return tmpl
 }
@@ -172,14 +181,15 @@ func generateIndex(sources []*Source) []byte {
 			continue
 		}
 
-		linksHTML += fmt.Sprintf(template, src.pageURI(), src.num, src.title, src.date)
+		linksHTML += fmt.Sprintf(template, src.pageURI(), src.num, src.title, src.date.Format(dateFormat))
 	}
 
 	index := Source{
-		title: "Не с начала",
+		title: siteDescription,
+		html:  []byte(linksHTML),
 	}
 
-	return generatePage(&index, []byte(linksHTML))
+	return generatePage(&index)
 }
 
 func Generate(srcDir, dstDir string) error {
@@ -207,10 +217,8 @@ func Generate(srcDir, dstDir string) error {
 
 		fmt.Printf("  %s %s...\n", green("processing"), src.path)
 
-		// generate HTML from source's markdown
-		html := markdownToHTML(src.body)
 		// add content html to the rest of the page
-		page := generatePage(src, html)
+		page := generatePage(src)
 		// where to store HTML result
 		out := src.pageURI()
 
@@ -219,9 +227,17 @@ func Generate(srcDir, dstDir string) error {
 		}
 	}
 
+	// TODO: generate rss feed as well, for compatibility?
+	atomFeed := generateFeeds(list)
+	atomFeedPath := path.Join(dstDir, "atom.xml")
+	fmt.Printf("%s %s...\n", green("processing"), atomFeedPath)
+	if err := os.WriteFile(atomFeedPath, atomFeed, 0644); err != nil {
+		return fmt.Errorf("failed to write atom.xml: %v", err)
+	}
+
 	index := generateIndex(list)
 	indexPath := path.Join(dstDir, "index.html")
-	fmt.Printf("Writing %s\n", yellow(indexPath))
+	fmt.Printf("%s %s...\n", green("processing"), indexPath)
 	if err := os.WriteFile(indexPath, index, 0644); err != nil {
 		return fmt.Errorf("failed to write index.html: %v", err)
 	}
