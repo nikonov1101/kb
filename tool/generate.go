@@ -153,22 +153,16 @@ func markdownToHTML(data []byte) []byte {
 // generatePage adds Source's headers and HTML body
 // to the template, returns fill page data
 func generatePage(src *Source, html []byte) []byte {
-	title := []byte("${TITLE}")
-	date := []byte("${DATE}")
-	content := []byte("${CONTENT}")
-
-	const backButton = `<a class="ba" href="/index.html">↩ &nbsp;</a>`
-
-	tmpl := bytes.ReplaceAll(templates.Page, title, []byte(backButton+src.title))
-	tmpl = bytes.ReplaceAll(tmpl, date, []byte(src.date))
-	tmpl = bytes.ReplaceAll(tmpl, content, html)
+	tmpl := bytes.ReplaceAll(templates.Page, []byte("${TITLE}"), []byte(src.title))
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(src.date))
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${CONTENT}"), html)
 
 	return tmpl
 }
 
 // generateIndex generate index page with links to notes given as `fs`
 func generateIndex(sources []*Source) []byte {
-	const template = `<div class="c"><a href="%s">%04d: %s</a><div class="d">%s</div></div>`
+	const template = `<div class="post-link"><a href="%s">%04d: %s</a><div class="post-date">%s</div></div>`
 
 	linksHTML := ""
 	for i := len(sources) - 1; i >= 0; i-- {
@@ -181,9 +175,11 @@ func generateIndex(sources []*Source) []byte {
 		linksHTML += fmt.Sprintf(template, src.pageURI(), src.num, src.title, src.date)
 	}
 
-	page := bytes.ReplaceAll(templates.Page, []byte("${CONTENT}"), []byte(linksHTML))
-	page = bytes.ReplaceAll(page, []byte("${TITLE}"), []byte("Не с начала"))
-	return page
+	index := Source{
+		title: "Не с начала",
+	}
+
+	return generatePage(&index, []byte(linksHTML))
 }
 
 func Generate(srcDir, dstDir string) error {

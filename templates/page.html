@@ -6,21 +6,30 @@
     <style>
         html {
             font-family: i8sans, "Helvetica Neue", Arial, sans-serif;
-            max-width: 840px;
             padding: 3em 1em;
             margin: auto;
             line-height: 1.75;
             font-size: 1.25em;
+            max-width: 740px;
         }
+
         .body {
-            width: 840px;
-            max-width: 840px;
+            width: 740px;
+            max-width: 740px;
             margin: 0 auto;
         }
-        .heading {
-            text-align: left;
+        .body h1, h2 {
+            font-size: 1.3em;
+        }
+        .body h1, h2, h3 {
+            margin-top: 24px;
+            margin-bottom: 8px;
+        }
+
+        .heading > h1 {
             font-size: 1.8em;
         }
+
         pre {
             padding-left: 10px;
             border-left: 2px solid #afafaf;
@@ -35,18 +44,67 @@
             border-bottom: 1px solid #afafaf;
             background: beige;
         }
+        p {
+            margin-top: 0.2em;
+        }
+        a, a:visited {
+            color: #0060a0;
+        }
 
-        a, a:visited { color: #0060a0; }
-        h1, h2 { font-size: 1.3em; }
-        h1, h2, h3 { margin-top: 24px; margin-bottom: 8px; }
-        p { margin-top: 0.2em; }
+        .post-link {
+            margin:18px 0;
+            font-size: 1.1em;
+        }
 
-        .ba { text-decoration: none; }
-        .c { margin:18px 0; font-size: 1.1em; }
-        .d { font-size: 0.7em; color: #aaa; }
+        .post-date {
+            font-size: 0.7em;
+            color: #aaa;
+        }
+
+        .topbar {
+            position: absolute;
+            top: 0;
+            font-size: 1.1em;
+        }
+        .topbar > a {
+            text-decoration: none;
+        }
+
+        /* For mobile phones: */
+        @media only screen and (width <= 990px) {
+            html {
+                max-width: 100%;
+                font-size: 3.2em;
+                padding: 3em 0.7em;
+            }
+
+            .heading > h1 {
+                font-size: 1.5em;
+            }
+
+            .body {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .topbar {
+                font-size: 44px;
+            }
+
+            ol {
+                margin-left: 0.7em;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="topbar">
+        <a href="/">index.html</a> ::
+        <a href="/rss.xml">rss</a> ::
+        <a target="_blank" href="https://github.com/nikonov1101">github</a> ::
+        <a target="_blank" href="https://t.me/nikonov1101">telegram</a> ::
+        <a href="mailto:alex@nikonov.tech">email</a>
+    </div>
     <div class="heading">
         <h1>${TITLE}</h1>
     </div>
