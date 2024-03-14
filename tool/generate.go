@@ -176,7 +176,7 @@ func generateIndex(sources []*Source) []byte {
 	linksHTML := ""
 	for i := len(sources) - 1; i >= 0; i-- {
 		src := sources[i]
-		if src.visibility == private {
+		if src.visibility != published {
 			// do not list private notes
 			continue
 		}

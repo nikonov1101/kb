@@ -13,7 +13,9 @@ func generateFeeds(items []*Source) []byte {
 	}
 
 	feed := feedhub.Feed{
-		Title:       "nikonov blog",
+		// seems like it's better to sign your blog with your name,
+		// at least in people' RSS feeds.
+		Title:       "alex nikonov",
 		Link:        &feedhub.Link{Href: baseURL},
 		Description: siteDescription,
 		Author:      author,
@@ -21,14 +23,16 @@ func generateFeeds(items []*Source) []byte {
 	}
 
 	for _, it := range items {
-		feed.Items = append(feed.Items, &feedhub.Item{
-			Title:       it.title,
-			Description: it.title,
-			Link:        &feedhub.Link{Href: baseURL + it.pageURI()},
-			Author:      author,
-			Created:     it.date,
-			Content:     string(it.html),
-		})
+		if it.visibility == published {
+			feed.Items = append(feed.Items, &feedhub.Item{
+				Title:       it.title,
+				Description: it.title,
+				Link:        &feedhub.Link{Href: baseURL + it.pageURI()},
+				Author:      author,
+				Created:     it.date,
+				Content:     string(it.html),
+			})
+		}
 	}
 
 	atom, err := feed.ToAtom()
