@@ -161,7 +161,7 @@ func markdownToHTML(data []byte) []byte {
 // generatePage makes a complete web-page from given source
 func generatePage(src *Source) []byte {
 	tmpl := bytes.ReplaceAll(templates.Page, []byte("${TITLE}"), []byte(src.title))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(src.date.Format(dateFormat)))
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(displayDate(src.date)))
 	tmpl = bytes.ReplaceAll(tmpl, []byte("${CONTENT}"), src.html)
 
 	return tmpl
@@ -179,7 +179,7 @@ func generateIndex(sources []*Source) []byte {
 			continue
 		}
 
-		linksHTML += fmt.Sprintf(template, src.pageURI(), src.num, src.title, src.date.Format(dateFormat))
+		linksHTML += fmt.Sprintf(template, src.pageURI(), src.num, src.title, displayDate(src.date))
 	}
 
 	index := Source{
@@ -242,4 +242,11 @@ func Generate(srcDir, dstDir string) error {
 
 	fmt.Printf("Done in %s.\n", green(time.Since(start).String()))
 	return nil
+}
+
+// displayDate returns localized date string for displaying in templates
+func displayDate(t time.Time) string {
+	var monthsLocalized = [...]string{"", "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"}
+	yy, mm, dd := t.Date()
+	return fmt.Sprintf("%d %s %d", dd, monthsLocalized[mm], yy)
 }

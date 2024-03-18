@@ -4,22 +4,28 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/nikonov1101/kb/tool"
 )
 
-// TODO: env var of PWD?
-const rootDir = "/Users/alex/src/kb"
+var rootDir = "/Users/alex/src/kb"
+
+func init() {
+	if root := os.Getenv("KB_ROOT"); len(root) > 0 {
+		rootDir = root
+	}
+}
 
 func main() {
 	var rootCmd = &cobra.Command{
 		Use: "kb",
 	}
 
-	srcDir := rootCmd.PersistentFlags().String("src", rootDir+"/src", "path to source directory")
-	dstDir := rootCmd.PersistentFlags().String("www", rootDir+"/www", "path to results directory")
+	srcDir := rootCmd.PersistentFlags().String("src", filepath.Join(rootDir, "/src"), "directory with markdown files")
+	dstDir := rootCmd.PersistentFlags().String("www", filepath.Join(rootDir, "/www"), "directory with generated html files")
 
 	var listCmd = &cobra.Command{
 		Use:   "list",
@@ -30,8 +36,9 @@ func main() {
 	}
 
 	var generateCmd = &cobra.Command{
-		Use:   "gen",
-		Short: "Generate site content",
+		Use:     "gen",
+		Aliases: []string{"generate", "build"},
+		Short:   "Generate site content",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return tool.Generate(*srcDir, *dstDir)
 		},
