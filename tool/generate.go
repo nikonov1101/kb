@@ -20,8 +20,6 @@ const (
 	published = "published"
 	private   = "private"
 	hidden    = "none"
-
-	dateFormat = "02 Jan 2006"
 )
 
 type Source struct {

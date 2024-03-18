@@ -14,7 +14,7 @@ visibility: private
 ---
 `
 
-const headerDateFormat = "02 Jan 2006"
+const dateFormat = "02 Jan 2006"
 
 func New(root, name string) (string, string, error) {
 	if strings.Contains(name, " ") {
@@ -37,7 +37,7 @@ func New(root, name string) (string, string, error) {
 	diskPath := path.Join(root, fileName)
 	fmt.Println("new file: ", diskPath)
 
-	date := time.Now().Format(headerDateFormat)
+	date := time.Now().Format(dateFormat)
 	content := strings.ReplaceAll(newFileContent, "$date$", date)
 	content = strings.ReplaceAll(content, "$name$", name)
 	if err := os.WriteFile(diskPath, []byte(content), 0644); err != nil {
