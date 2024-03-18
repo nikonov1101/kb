@@ -42,27 +42,38 @@ func main() {
 		Short: "Create new empty note",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			file, err := tool.New(*srcDir, args[0])
+			diskPath, webPath, err := tool.New(*srcDir, args[0])
 			if err != nil {
 				return err
 			}
 
-			if err := exec.Command("/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl", "-a", file).Run(); err != nil {
+			if err := exec.Command("/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl", "-a", diskPath).Run(); err != nil {
 				fmt.Printf("failed to open editor: %v\n", err)
 			}
 
-			return nil
+			listen := cmd.Flag("addr").Value.String()
+			openURL := "http://" + listen + "/" + webPath
+			return tool.Serve(
+				*srcDir,
+				*dstDir,
+				listen,
+				openURL,
+			)
 		},
 	}
+	newCmd.PersistentFlags().String("addr", "127.0.0.1:8000", "address to listen to")
 
 	var serveCmd = &cobra.Command{
 		Use:   "serve",
 		Short: "Generate pages and start http server in result dir",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			listen := cmd.Flag("addr").Value.String()
+			openURL := "http://" + listen
 			return tool.Serve(
 				*srcDir,
 				*dstDir,
-				cmd.Flag("addr").Value.String(),
+				listen,
+				openURL,
 			)
 		},
 	}

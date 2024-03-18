@@ -8,7 +8,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-func Serve(src, dst string, listenAddr string) error {
+func Serve(src, dst string, listenAddr string, openURL string) error {
 	if err := Generate(src, dst); err != nil {
 		return err
 	}
@@ -24,7 +24,7 @@ func Serve(src, dst string, listenAddr string) error {
 	})
 
 	// note: macos only
-	if err := exec.Command("/usr/bin/open", "http://"+listenAddr).Run(); err != nil {
+	if err := exec.Command("/usr/bin/open", openURL).Run(); err != nil {
 		fmt.Printf("failed to invoke `open` command: %v\n", err)
 	}
 

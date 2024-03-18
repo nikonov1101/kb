@@ -10,20 +10,20 @@ import (
 
 const newFileContent = `title: $name$
 date: $date$
-visibility: published
+visibility: private
 ---
 `
 
 const headerDateFormat = "02 Jan 2006"
 
-func New(root, name string) (string, error) {
+func New(root, name string) (string, string, error) {
 	if strings.Contains(name, " ") {
-		return "", fmt.Errorf("name must not contain spaces")
+		return "", "", fmt.Errorf("name must not contain spaces")
 	}
 
 	sources, err := listSources(root)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	var next int64
@@ -31,15 +31,18 @@ func New(root, name string) (string, error) {
 		next = sources[len(sources)-1].num + 1
 	}
 
-	p := path.Join(root, fmt.Sprintf("%04d-%s.md", next, name))
-	fmt.Println("new file at", p)
+	fileName := fmt.Sprintf("%04d-%s.md", next, name)
+	webPath := fmt.Sprintf("%04d-%s.html", next, name)
+
+	diskPath := path.Join(root, fileName)
+	fmt.Println("new file: ", diskPath)
 
 	date := time.Now().Format(headerDateFormat)
 	content := strings.ReplaceAll(newFileContent, "$date$", date)
 	content = strings.ReplaceAll(content, "$name$", name)
-	if err := os.WriteFile(p, []byte(content), 0644); err != nil {
-		return "", fmt.Errorf("failed to write to %s: %v", p, err)
+	if err := os.WriteFile(diskPath, []byte(content), 0644); err != nil {
+		return "", "", fmt.Errorf("failed to write to %s: %v", diskPath, err)
 	}
 
-	return p, nil
+	return diskPath, webPath, nil
 }
