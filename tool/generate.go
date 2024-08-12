@@ -169,7 +169,7 @@ func generatePage(src *Source) []byte {
 
 // generateIndex generate index page with links to notes given as `fs`
 func generateIndex(sources []*Source) []byte {
-	const template = `<div class="post-link"><a href="%s">%04d: %s</a><div class="post-date">%s</div></div>`
+	const template = `<div class="post-link"><a href="%s">%s</a><div class="post-date">%s</div></div>`
 
 	linksHTML := ""
 	for i := len(sources) - 1; i >= 0; i-- {
@@ -179,7 +179,7 @@ func generateIndex(sources []*Source) []byte {
 			continue
 		}
 
-		linksHTML += fmt.Sprintf(template, src.pageURI(), src.num, src.title, displayDate(src.date))
+		linksHTML += fmt.Sprintf(template, src.pageURI(), src.title, displayDate(src.date))
 	}
 
 	index := Source{
