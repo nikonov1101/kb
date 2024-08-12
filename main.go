@@ -46,7 +46,7 @@ func main() {
 
 	var newCmd = &cobra.Command{
 		Use:   "new <name>",
-		Short: "Create new empty note",
+		Short: fmt.Sprintf("Create new empty note and open in %q", tool.EDITOR),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			diskPath, webPath, err := tool.New(*srcDir, args[0])
@@ -54,7 +54,7 @@ func main() {
 				return err
 			}
 
-			if err := exec.Command("/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl", "-a", diskPath).Run(); err != nil {
+			if err := exec.Command(tool.EDITOR, "-a", diskPath).Run(); err != nil {
 				fmt.Printf("failed to open editor: %v\n", err)
 			}
 
