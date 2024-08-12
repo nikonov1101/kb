@@ -1,3 +1,3 @@
 package tool
 
-const EDITOR = "/usr/bin/subl
+const EDITOR = "/usr/bin/subl"
