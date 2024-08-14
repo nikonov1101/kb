@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -54,9 +55,12 @@ func main() {
 				return err
 			}
 
-			if err := exec.Command(tool.EDITOR, "-a", diskPath).Run(); err != nil {
-				fmt.Printf("failed to open editor: %v\n", err)
-			}
+			go func() {
+				time.Sleep(200 * time.Millisecond)
+				if err := exec.Command(tool.EDITOR, "-a", diskPath).Run(); err != nil {
+					fmt.Printf("failed to open editor: %v\n", err)
+				}
+			}()
 
 			listen := cmd.Flag("addr").Value.String()
 			openURL := "http://" + listen + "/" + webPath
