@@ -117,7 +117,6 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 	}
 
 	source.html = markdownToHTML(source.markdown)
-
 	return source, nil
 }
 
@@ -169,9 +168,9 @@ func generatePage(src *Source) []byte {
 
 // generateIndex generate index page with links to notes given as `fs`
 func generateIndex(sources []*Source) []byte {
-	const template = `<div class="post-link"><a href="%s">%s</a><div class="post-date">%s</div></div>`
+	const template = `<li><span class="post-date">%s</span>&nbsp;<a href="%s">%s</a></li>`
 
-	linksHTML := ""
+	linksHTML := "<ul>"
 	for i := len(sources) - 1; i >= 0; i-- {
 		src := sources[i]
 		if src.visibility != published {
@@ -179,8 +178,9 @@ func generateIndex(sources []*Source) []byte {
 			continue
 		}
 
-		linksHTML += fmt.Sprintf(template, src.pageURI(), src.title, displayDate(src.date))
+		linksHTML += fmt.Sprintf(template, displayDate(src.date), src.pageURI(), src.title)
 	}
+	linksHTML += "</ul>"
 
 	index := Source{
 		title: siteDescription,
@@ -246,7 +246,5 @@ func Generate(srcDir, dstDir string) error {
 
 // displayDate returns localized date string for displaying in templates
 func displayDate(t time.Time) string {
-	var monthsLocalized = [...]string{"", "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"}
-	yy, mm, dd := t.Date()
-	return fmt.Sprintf("%d %s %d", dd, monthsLocalized[mm], yy)
+	return t.Format(dateFormat)
 }
