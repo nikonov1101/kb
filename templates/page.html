@@ -51,15 +51,23 @@
         }
         ul {
             margin-top: 0.2em;
+            list-style-type: none;
         }
         .post-link {
             margin:18px 0;
             font-size: 1.1em;
         }
 
-        .post-date {
+        .post-date, .timestamp {
             font-size: 0.7em;
             color: #aaa;
+        }
+        .timestamp {
+            margin-top: -28px;
+        }
+
+        .timestamp:empty {
+            margin-top: 0;
         }
 
         .topbar {
@@ -128,13 +136,14 @@
             .post-link {
                 color: #b0b0b0; /* Light gray for post links */
             }
-            .post-date {
+            .post-date, .timestamp {
                 color: #888; /* Gray for date */
             }
             .topbar {
                 color: #f5f5f5;
             }
             .topbar > a {
+                text-decoration: none;
                 color: #ff5757; /* Same red as links */
             }
 
@@ -177,11 +186,9 @@
         <a target="_blank" href="https://t.me/nikonov1101">telegram</a> ::
         <a href="mailto:alex@nikonov.tech">email</a>
     </div>
-    <div class="heading">
-        <h1>${TITLE}</h1>
-    </div>
-    <div class="body">
-        ${CONTENT}
-    </div>
+
+    <div class="heading"><h1>${TITLE}</h1></div>
+    <div class="timestamp">${TIMESTAMP}</div>
+    <div class="body">${CONTENT}</div>
 </body>
 </html>

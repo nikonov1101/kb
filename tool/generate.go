@@ -163,6 +163,13 @@ func generatePage(src *Source) []byte {
 	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(displayDate(src.date)))
 	tmpl = bytes.ReplaceAll(tmpl, []byte("${CONTENT}"), src.html)
 
+	timeStr := ""
+	if !src.date.IsZero() {
+		// do not render date string for index page
+		timeStr = src.date.Format(dateFormat)
+	}
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${TIMESTAMP}"), []byte(timeStr))
+
 	return tmpl
 }
 
@@ -197,7 +204,7 @@ func Generate(srcDir, dstDir string) error {
 		return fmt.Errorf("failed to clean the dst dir: %v", err)
 	}
 
-	if err := os.MkdirAll(dstDir, 0755); err != nil {
+	if err := os.MkdirAll(dstDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create the dst dir: %v", err)
 	}
 
@@ -220,7 +227,7 @@ func Generate(srcDir, dstDir string) error {
 		// where to store HTML result
 		out := src.pageURI()
 
-		if err := os.WriteFile(path.Join(dstDir, out), page, 0644); err != nil {
+		if err := os.WriteFile(path.Join(dstDir, out), page, 0o644); err != nil {
 			return fmt.Errorf("failed to write to %s: %v", out, err)
 		}
 	}
@@ -229,14 +236,14 @@ func Generate(srcDir, dstDir string) error {
 	atomFeed := generateFeeds(list)
 	atomFeedPath := path.Join(dstDir, "atom.xml")
 	fmt.Printf("%s %s...\n", green("processing"), atomFeedPath)
-	if err := os.WriteFile(atomFeedPath, atomFeed, 0644); err != nil {
+	if err := os.WriteFile(atomFeedPath, atomFeed, 0o644); err != nil {
 		return fmt.Errorf("failed to write atom.xml: %v", err)
 	}
 
 	index := generateIndex(list)
 	indexPath := path.Join(dstDir, "index.html")
 	fmt.Printf("%s %s...\n", green("processing"), indexPath)
-	if err := os.WriteFile(indexPath, index, 0644); err != nil {
+	if err := os.WriteFile(indexPath, index, 0o644); err != nil {
 		return fmt.Errorf("failed to write index.html: %v", err)
 	}
 
