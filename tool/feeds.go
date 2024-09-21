@@ -16,7 +16,7 @@ func generateFeeds(items []*Source) []byte {
 		// seems like it's better to sign your blog with your name,
 		// at least in people' RSS feeds.
 		Title:       "alex nikonov",
-		Link:        &feedhub.Link{Href: baseURL},
+		Link:        &feedhub.Link{Href: rssFeedURL},
 		Description: siteDescription,
 		Author:      author,
 		Created:     time.Now().UTC(),
@@ -27,7 +27,7 @@ func generateFeeds(items []*Source) []byte {
 			feed.Items = append(feed.Items, &feedhub.Item{
 				Title:       it.title,
 				Description: it.title,
-				Link:        &feedhub.Link{Href: baseURL + it.pageURI()},
+				Link:        &feedhub.Link{Href: rssFeedURL + it.pageURI()},
 				Author:      author,
 				Created:     it.date,
 				Content:     string(it.html),
