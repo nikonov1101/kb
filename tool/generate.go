@@ -45,6 +45,10 @@ type Source struct {
 	markdown []byte
 	// cached generated html
 	html []byte
+
+	// isIndex tells renderer that this page is index page,
+	// so extra rules might be applied.
+	isIndex bool
 }
 
 func (s *Source) pageURI() string {
@@ -159,16 +163,28 @@ func markdownToHTML(data []byte) []byte {
 
 // generatePage makes a complete web-page from given source
 func generatePage(src *Source) []byte {
-	tmpl := bytes.ReplaceAll(templates.Page, []byte("${TITLE}"), []byte(src.title))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(displayDate(src.date)))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${CONTENT}"), src.html)
+	title := src.title
+	pageTitle := fmt.Sprintf(`<div class="heading"><h1>%s</h1></div>`, title)
+	about := ""
+
+	if src.isIndex {
+		title = siteDescription
+		pageTitle = ""
+		about = templates.Intro
+	}
 
 	timeStr := ""
 	if !src.date.IsZero() {
 		// do not render date string for index page
 		timeStr = src.date.Format(dateFormat)
 	}
+
+	tmpl := bytes.ReplaceAll(templates.Page, []byte("${TITLE}"), []byte(title))
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${PAGE_TITLE}"), []byte(pageTitle))
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(displayDate(src.date)))
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${CONTENT}"), src.html)
 	tmpl = bytes.ReplaceAll(tmpl, []byte("${TIMESTAMP}"), []byte(timeStr))
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${INDEX_ABOUT}"), []byte(about))
 
 	return tmpl
 }
@@ -190,8 +206,8 @@ func generateIndex(sources []*Source) []byte {
 	linksHTML += "</ul>"
 
 	index := Source{
-		title: siteDescription,
-		html:  []byte(linksHTML),
+		html:    []byte(linksHTML),
+		isIndex: true,
 	}
 
 	return generatePage(&index)
