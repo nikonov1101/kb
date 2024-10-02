@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 
 	"github.com/nikonov1101/kb/tool"
@@ -21,14 +23,14 @@ func init() {
 }
 
 func main() {
-	var rootCmd = &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use: "kb",
 	}
 
 	srcDir := rootCmd.PersistentFlags().String("src", filepath.Join(rootDir, "/src"), "directory with markdown files")
 	dstDir := rootCmd.PersistentFlags().String("www", filepath.Join(rootDir, "/www"), "directory with generated html files")
 
-	var listCmd = &cobra.Command{
+	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "Show list of notes in the source dir",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -36,21 +38,31 @@ func main() {
 		},
 	}
 
-	var generateCmd = &cobra.Command{
+	generateCmd := &cobra.Command{
 		Use:     "gen",
 		Aliases: []string{"generate", "build"},
 		Short:   "Generate site content",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return tool.Generate(*srcDir, *dstDir)
+			isPrivate := cmd.Flag("private").Value.String() == "true"
+			return tool.Generate(*srcDir, *dstDir, isPrivate)
 		},
 	}
+	generateCmd.PersistentFlags().Bool("private", false, "render private notes")
 
-	var newCmd = &cobra.Command{
+	newCmd := &cobra.Command{
 		Use:   "new <name>",
 		Short: fmt.Sprintf("Create new empty note and open in %q", tool.EDITOR),
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			diskPath, webPath, err := tool.New(*srcDir, args[0])
+			isPrivate := cmd.Flag("private").Value.String() == "true"
+			name := uuid.New().String()
+			if !isPrivate {
+				if len(args) != 1 {
+					return errors.New("accepts 1 arg(s), received 0")
+				}
+			}
+
+			diskPath, webPath, err := tool.New(*srcDir, name, isPrivate)
 			if err != nil {
 				return err
 			}
@@ -69,15 +81,18 @@ func main() {
 				*dstDir,
 				listen,
 				openURL,
+				isPrivate,
 			)
 		},
 	}
 	newCmd.PersistentFlags().String("addr", "127.0.0.1:8000", "address to listen to")
+	newCmd.PersistentFlags().Bool("private", false, "render private notes")
 
-	var serveCmd = &cobra.Command{
+	serveCmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Generate pages and start http server in result dir",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			isPrivate := cmd.Flag("private").Value.String() == "true"
 			listen := cmd.Flag("addr").Value.String()
 			openURL := "http://" + listen
 			return tool.Serve(
@@ -85,10 +100,12 @@ func main() {
 				*dstDir,
 				listen,
 				openURL,
+				isPrivate,
 			)
 		},
 	}
 	serveCmd.PersistentFlags().String("addr", "127.0.0.1:8000", "address to listen to")
+	serveCmd.PersistentFlags().Bool("private", false, "render private notes")
 
 	rootCmd.AddCommand(
 		listCmd,

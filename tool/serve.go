@@ -8,8 +8,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-func Serve(src, dst string, listenAddr string, openURL string) error {
-	if err := Generate(src, dst); err != nil {
+func Serve(src, dst string, listenAddr string, openURL string, withPrivate bool) error {
+	if err := Generate(src, dst, withPrivate); err != nil {
 		return err
 	}
 
@@ -18,7 +18,7 @@ func Serve(src, dst string, listenAddr string, openURL string) error {
 
 	watchFs(src, func(s string) {
 		fmt.Printf("\nfsnotify: write event on %s, generating...\n", yellow(s))
-		if err := Generate(src, dst); err != nil {
+		if err := Generate(src, dst, withPrivate); err != nil {
 			fmt.Printf("  Generate() failed: %v\n", err)
 		}
 	})

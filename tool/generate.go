@@ -190,13 +190,13 @@ func generatePage(src *Source) []byte {
 }
 
 // generateIndex generate index page with links to notes given as `fs`
-func generateIndex(sources []*Source) []byte {
+func generateIndex(sources []*Source, withPrivate bool) []byte {
 	const template = `<li><span class="post-date">%s</span>&nbsp;<a href="%s">%s</a></li>`
 
 	linksHTML := "<ul>"
 	for i := len(sources) - 1; i >= 0; i-- {
 		src := sources[i]
-		if src.visibility != published {
+		if src.visibility == hidden || (src.visibility == private && !withPrivate) {
 			// do not list private notes
 			continue
 		}
@@ -213,7 +213,7 @@ func generateIndex(sources []*Source) []byte {
 	return generatePage(&index)
 }
 
-func Generate(srcDir, dstDir string) error {
+func Generate(srcDir, dstDir string, withPrivate bool) error {
 	start := time.Now()
 
 	if err := os.RemoveAll(dstDir); err != nil {
@@ -231,7 +231,7 @@ func Generate(srcDir, dstDir string) error {
 
 	fmt.Printf("Found %s source file(s)\n", green(strconv.Itoa(len(list))))
 	for _, src := range list {
-		if src.visibility == hidden {
+		if src.visibility == hidden || (src.visibility == private && !withPrivate) {
 			fmt.Printf("  %s hidden %s...\n", yellow("skipping"), src.path)
 			continue
 		}
@@ -249,14 +249,16 @@ func Generate(srcDir, dstDir string) error {
 	}
 
 	// TODO: generate rss feed as well, for compatibility?
-	atomFeed := generateFeeds(list)
-	atomFeedPath := path.Join(dstDir, "atom.xml")
-	fmt.Printf("%s %s...\n", green("processing"), atomFeedPath)
-	if err := os.WriteFile(atomFeedPath, atomFeed, 0o644); err != nil {
-		return fmt.Errorf("failed to write atom.xml: %v", err)
+	if !withPrivate {
+		atomFeed := generateFeeds(list)
+		atomFeedPath := path.Join(dstDir, "atom.xml")
+		fmt.Printf("%s %s...\n", green("processing"), atomFeedPath)
+		if err := os.WriteFile(atomFeedPath, atomFeed, 0o644); err != nil {
+			return fmt.Errorf("failed to write atom.xml: %v", err)
+		}
 	}
 
-	index := generateIndex(list)
+	index := generateIndex(list, withPrivate)
 	indexPath := path.Join(dstDir, "index.html")
 	fmt.Printf("%s %s...\n", green("processing"), indexPath)
 	if err := os.WriteFile(indexPath, index, 0o644); err != nil {
