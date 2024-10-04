@@ -61,6 +61,7 @@ func main() {
 				if len(args) != 1 {
 					return errors.New("accepts 1 arg(s), received 0")
 				}
+				name = args[0]
 			}
 
 			diskPath, webPath, err := tool.New(*srcDir, name, isPrivate)
