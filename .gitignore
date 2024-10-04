@@ -1,3 +1,5 @@
 src/
 www/
 kb
+build_time
+build_git

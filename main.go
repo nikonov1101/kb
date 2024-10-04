@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nikonov1101/kb/tool"
+	"github.com/nikonov1101/kb/version"
 )
 
 var rootDir = "/Users/alex/src/kb"
@@ -107,11 +108,24 @@ func main() {
 	serveCmd.PersistentFlags().String("addr", "127.0.0.1:8000", "address to listen to")
 	serveCmd.PersistentFlags().Bool("private", false, "render private notes")
 
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "show version, build info, and current configuration parameters",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.Printf("Built with: %s\n", version.CompillerVersion())
+			cmd.Printf("Built at:   %s\n", version.BuildTime())
+			cmd.Printf("Version:    %s\n", version.BuildCommit())
+			cmd.Printf("Source dir: %s\n", *srcDir)
+			return nil
+		},
+	}
+
 	rootCmd.AddCommand(
 		listCmd,
 		generateCmd,
 		newCmd,
 		serveCmd,
+		versionCmd,
 	)
 
 	if err := rootCmd.Execute(); err != nil {
