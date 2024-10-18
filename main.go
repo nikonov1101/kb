@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/nikonov1101/kb/colors"
+	"github.com/nikonov1101/colors.go"
 	"github.com/nikonov1101/kb/tool"
 	"github.com/nikonov1101/kb/version"
 )
@@ -82,7 +81,7 @@ func main() {
 				return err
 			}
 
-			log.Printf("source: %s, files %s", colors.Green(*srcDir), colors.Yellow(strconv.Itoa(len(list))))
+			fmt.Printf("source: %s, files %s", colors.Green(*srcDir), colors.Yellow(strconv.Itoa(len(list))))
 
 			if err := tool.GeneratePages(list, *dstDir, siteName, baseURL); err != nil {
 				return errors.Wrap(err, "generate pages")
@@ -126,15 +125,15 @@ func main() {
 			if isEdit {
 				if !isOpenBrowser {
 					// edit but not open browser: block by a editor process
-					if err := exec.Command(tool.EDITOR, "-a", diskPath).Run(); err != nil {
+					if err := openEditor(diskPath); err != nil {
 						fmt.Printf("failed to open editor: %v\n", err)
 					}
 				} else {
 					go func() {
 						// edit and view in browser: detach editor, block by a web server process
 						time.Sleep(200 * time.Millisecond)
-						if err := exec.Command(tool.EDITOR, "-a", diskPath).Run(); err != nil {
-							fmt.Printf("failed to open editor: %v\n", err)
+						if err := openEditor(diskPath); err != nil {
+							fmt.Printf("failed to open browser: %v\n", err)
 						}
 					}()
 				}
@@ -145,7 +144,7 @@ func main() {
 				go func() {
 					time.Sleep(50 * time.Millisecond)
 					openURL := "http://" + listen + "/" + webPath
-					if err := exec.Command("/usr/bin/open", openURL).Run(); err != nil {
+					if err := openBrowser(openURL); err != nil {
 						fmt.Printf("failed to invoke `open` command: %v\n", err)
 					}
 				}()
@@ -158,7 +157,7 @@ func main() {
 	}
 	newCmd.PersistentFlags().String("addr", "127.0.0.1:8000", "address to listen to")
 	newCmd.PersistentFlags().Bool("private", false, "render private notes")
-	newCmd.PersistentFlags().Bool("edit", false, "open new note in editor")
+	newCmd.PersistentFlags().Bool("edit", true, "open new note in editor")
 	newCmd.PersistentFlags().Bool("web", false, "open a browser with new note")
 
 	serveCmd := &cobra.Command{
@@ -173,12 +172,13 @@ func main() {
 				go func() {
 					time.Sleep(50 * time.Millisecond)
 					openURL := "http://" + listen
-					if err := exec.Command("/usr/bin/open", openURL).Run(); err != nil {
-						fmt.Printf("failed to invoke `open` command: %v\n", err)
+					if err := openBrowser(openURL); err != nil {
+						fmt.Printf("failed to open browser: %v\n", err)
 					}
 				}()
 			}
 
+			fmt.Printf("starting web-server on %s ...\n", colors.BGreen("http://"+listen))
 			return tool.Serve(*srcDir, *dstDir, listen, siteName, baseURL, isPrivate)
 		},
 	}
@@ -210,4 +210,18 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func openBrowser(url string) error {
+	if err := exec.Command("/usr/bin/open", url).Run(); err != nil {
+		return errors.Wrapf(err, "open %q in browser", url)
+	}
+	return nil
+}
+
+func openEditor(filePath string) error {
+	if err := exec.Command(tool.EDITOR, "-a", filePath).Run(); err != nil {
+		return errors.Wrapf(err, "open %q in editor", filePath)
+	}
+	return nil
 }

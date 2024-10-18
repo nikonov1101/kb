@@ -1,6 +1,6 @@
 module github.com/nikonov1101/kb
 
-go 1.21
+go 1.22.1
 
 require (
 	github.com/fsnotify/fsnotify v1.4.9
@@ -10,6 +10,8 @@ require (
 	github.com/spf13/cobra v1.0.0
 	gopkg.in/russross/blackfriday.v2 v2.0.0
 )
+
+require github.com/nikonov1101/colors.go v0.0.0-20241018141702-68e73750b420
 
 require (
 	github.com/google/uuid v1.6.0
