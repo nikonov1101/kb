@@ -1,43 +1,42 @@
 package tool
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 )
 
-// returns sorted list of files in the source's root directory
-func listSources(root string) ([]*Source, error) {
-	var fs []*Source
+// ListSources return sorted list of notes in the source directory
+func ListSources(root string, withPrivate bool) ([]Source, error) {
+	fs, err := listSources(root, withPrivate)
+	if err != nil {
+		return nil, err
+	}
+
+	return fs, nil
+}
+
+func listSources(root string, withPrivate bool) ([]Source, error) {
+	var sourceFiles []Source
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if !(info.IsDir() || info.Name()[0] == '.') {
-			ff, err := loadSourceFile(path)
+		if !info.IsDir() && info.Name()[0] != '.' {
+			source, err := loadSourceFile(path)
 			if err != nil {
 				return err
 			}
 
-			fs = append(fs, ff)
+			if source.Visibility != Published && !withPrivate {
+				return nil
+			}
+
+			sourceFiles = append(sourceFiles, source)
 		}
 		return err
 	})
 
-	sort.SliceStable(fs, func(i, j int) bool {
-		return fs[i].num < fs[j].num
+	sort.SliceStable(sourceFiles, func(i, j int) bool {
+		return sourceFiles[i].Num < sourceFiles[j].Num
 	})
 
-	return fs, err
-}
-
-func ListSources(root string) error {
-	fs, err := listSources(root)
-	if err != nil {
-		return err
-	}
-
-	for _, ff := range fs {
-		fmt.Printf("%s %q\n", yellow(ff.path), ff.title)
-	}
-
-	return nil
+	return sourceFiles, err
 }

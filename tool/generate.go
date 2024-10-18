@@ -11,53 +11,63 @@ import (
 	"time"
 
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/nikonov1101/kb/tool/templates"
+	"github.com/pkg/errors"
 	"gopkg.in/russross/blackfriday.v2"
-
-	"github.com/nikonov1101/kb/templates"
 )
 
-const (
-	published = "published"
-	private   = "private"
-	hidden    = "none"
-)
+// GeneratePages site content using notes in srcDir, saving html files in dstDir
+func GeneratePages(notes []Source, destDir string, siteName string, baseURL string) error {
+	if err := os.RemoveAll(destDir); err != nil {
+		return fmt.Errorf("failed to clean the dst dir: %v", err)
+	}
 
-type Source struct {
-	// relative path on disk,
-	// including source directory
-	path string
-	// file name without source dir
-	// and the .md extension
-	baseName string
-	// sequential file number
-	num int64
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create the dst dir: %v", err)
+	}
 
-	// note title, from headers
-	title string
-	// publication date described by dateFormat, from headers
-	date time.Time
-	// visibility of rendered page:
-	// "published" - rendered, listed on index page
-	// "private" - rendered, not listed on index page
-	// "none" - not rendered
-	visibility string
-	// raw markdown content
-	markdown []byte
-	// cached generated html
-	html []byte
+	for _, src := range notes {
+		// add content html to the rest of the page
+		page := generatePage(siteName, src)
+		// where to store HTML result
+		out := src.HTMLFileName()
 
-	// isIndex tells renderer that this page is index page,
-	// so extra rules might be applied.
-	isIndex bool
+		if err := os.WriteFile(path.Join(destDir, out), page, 0o644); err != nil {
+			return fmt.Errorf("failed to write to %s: %v", out, err)
+		}
+	}
+
+	return nil
 }
 
-func (s *Source) pageURI() string {
-	return s.baseName + ".html"
+// GenerateIndex generate index page with links to notes given as `fs`
+func GenerateIndex(sources []Source, destDir string, siteName string) error {
+	const template = `<li><span class="post-date">%s</span>&nbsp;<a href="%s">%s</a></li>`
+
+	linksHTML := "<ul>"
+	for i := len(sources) - 1; i >= 0; i-- {
+		src := sources[i]
+		linksHTML += fmt.Sprintf(template, displayDate(src.Date), src.HTMLFileName(), src.Title)
+	}
+	linksHTML += "</ul>"
+
+	index := Source{
+		html:    []byte(linksHTML),
+		isIndex: true,
+	}
+
+	page := generatePage(siteName, index)
+	indexPath := path.Join(destDir, "index.html")
+	if err := os.WriteFile(indexPath, page, 0o644); err != nil {
+		return errors.Wrapf(err, "write %s", indexPath)
+	}
+
+	return nil
 }
 
 // parseFile turns the sourceBytes into
 // ready-to-render *Source
-func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
+func parseFile(filePath string, sourceBytes []byte) (Source, error) {
 	// parse path and parts
 	baseName := strings.Split(path.Base(filePath), ".")[0]
 	// parse file number,
@@ -70,7 +80,7 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 	// look for headers
 	delim := bytes.Index(sourceBytes, []byte("---"))
 	if delim == -1 {
-		return nil, fmt.Errorf("missing `---` separator in a file")
+		return Source{}, fmt.Errorf("missing `---` separator in a file")
 	}
 
 	// split content into parts
@@ -78,11 +88,11 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 	rawHeaders := sourceBytes[:delim]
 	lines := bytes.Split(rawHeaders, []byte("\n"))
 
-	source := &Source{
+	source := Source{
 		markdown: body,
-		path:     filePath,
-		baseName: baseName,
-		num:      num,
+		Path:     filePath,
+		BaseName: baseName,
+		Num:      num,
 	}
 
 	// parse headers
@@ -93,7 +103,7 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 		s := string(ln)
 		parts := strings.SplitN(s, ":", 2)
 		if len(parts) != 2 {
-			return nil, fmt.Errorf("malformed tag line at %d (%s): no separator", i+1, s)
+			return Source{}, fmt.Errorf("malformed tag line at %d (%s): no separator", i+1, s)
 		}
 
 		key := strings.TrimSpace(parts[0])
@@ -101,22 +111,22 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 
 		switch key {
 		case "title":
-			source.title = value
+			source.Title = value
 		case "date":
 			v, err := time.Parse(dateFormat, value)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse %q as %q: %v", value, dateFormat, err)
+				return Source{}, fmt.Errorf("failed to parse %q as %q: %v", value, dateFormat, err)
 			}
-			source.date = v
+			source.Date = v
 		case "visibility":
 			switch value {
-			case published, private:
-				source.visibility = value
+			case Published, Private:
+				source.Visibility = value
 			default:
-				source.visibility = hidden
+				source.Visibility = Hidden
 			}
 		default:
-			return nil, fmt.Errorf("unknown tag %s", parts[0])
+			return Source{}, fmt.Errorf("unknown tag %s", parts[0])
 		}
 	}
 
@@ -125,7 +135,7 @@ func parseFile(filePath string, sourceBytes []byte) (*Source, error) {
 }
 
 // loadSourceFile from disk and parse its content
-func loadSourceFile(filePath string) (*Source, error) {
+func loadSourceFile(filePath string) (Source, error) {
 	text, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)
@@ -162,111 +172,31 @@ func markdownToHTML(data []byte) []byte {
 }
 
 // generatePage makes a complete web-page from given source
-func generatePage(src *Source) []byte {
-	title := src.title
+func generatePage(siteName string, src Source) []byte {
+	title := src.Title
 	pageTitle := fmt.Sprintf(`<div class="heading"><h1>%s</h1></div>`, title)
 	about := ""
 
 	if src.isIndex {
-		title = siteDescription
+		title = siteName
 		pageTitle = ""
 		about = templates.Intro
 	}
 
 	timeStr := ""
-	if !src.date.IsZero() {
+	if !src.Date.IsZero() {
 		// do not render date string for index page
-		timeStr = src.date.Format(dateFormat)
+		timeStr = src.Date.Format(dateFormat)
 	}
 
 	tmpl := bytes.ReplaceAll(templates.Page, []byte("${TITLE}"), []byte(title))
 	tmpl = bytes.ReplaceAll(tmpl, []byte("${PAGE_TITLE}"), []byte(pageTitle))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(displayDate(src.date)))
+	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(displayDate(src.Date)))
 	tmpl = bytes.ReplaceAll(tmpl, []byte("${CONTENT}"), src.html)
 	tmpl = bytes.ReplaceAll(tmpl, []byte("${TIMESTAMP}"), []byte(timeStr))
 	tmpl = bytes.ReplaceAll(tmpl, []byte("${INDEX_ABOUT}"), []byte(about))
 
 	return tmpl
-}
-
-// generateIndex generate index page with links to notes given as `fs`
-func generateIndex(sources []*Source, withPrivate bool) []byte {
-	const template = `<li><span class="post-date">%s</span>&nbsp;<a href="%s">%s</a></li>`
-
-	linksHTML := "<ul>"
-	for i := len(sources) - 1; i >= 0; i-- {
-		src := sources[i]
-		if src.visibility == hidden || (src.visibility == private && !withPrivate) {
-			// do not list private notes
-			continue
-		}
-
-		linksHTML += fmt.Sprintf(template, displayDate(src.date), src.pageURI(), src.title)
-	}
-	linksHTML += "</ul>"
-
-	index := Source{
-		html:    []byte(linksHTML),
-		isIndex: true,
-	}
-
-	return generatePage(&index)
-}
-
-func Generate(srcDir, dstDir string, withPrivate bool) error {
-	start := time.Now()
-
-	if err := os.RemoveAll(dstDir); err != nil {
-		return fmt.Errorf("failed to clean the dst dir: %v", err)
-	}
-
-	if err := os.MkdirAll(dstDir, 0o755); err != nil {
-		return fmt.Errorf("failed to create the dst dir: %v", err)
-	}
-
-	list, err := listSources(srcDir)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("Found %s source file(s)\n", green(strconv.Itoa(len(list))))
-	for _, src := range list {
-		if src.visibility == hidden || (src.visibility == private && !withPrivate) {
-			fmt.Printf("  %s hidden %s...\n", yellow("skipping"), src.path)
-			continue
-		}
-
-		fmt.Printf("  %s %s...\n", green("processing"), src.path)
-
-		// add content html to the rest of the page
-		page := generatePage(src)
-		// where to store HTML result
-		out := src.pageURI()
-
-		if err := os.WriteFile(path.Join(dstDir, out), page, 0o644); err != nil {
-			return fmt.Errorf("failed to write to %s: %v", out, err)
-		}
-	}
-
-	// TODO: generate rss feed as well, for compatibility?
-	if !withPrivate {
-		atomFeed := generateFeeds(list)
-		atomFeedPath := path.Join(dstDir, "atom.xml")
-		fmt.Printf("%s %s...\n", green("processing"), atomFeedPath)
-		if err := os.WriteFile(atomFeedPath, atomFeed, 0o644); err != nil {
-			return fmt.Errorf("failed to write atom.xml: %v", err)
-		}
-	}
-
-	index := generateIndex(list, withPrivate)
-	indexPath := path.Join(dstDir, "index.html")
-	fmt.Printf("%s %s...\n", green("processing"), indexPath)
-	if err := os.WriteFile(indexPath, index, 0o644); err != nil {
-		return fmt.Errorf("failed to write index.html: %v", err)
-	}
-
-	fmt.Printf("Done in %s.\n", green(time.Since(start).String()))
-	return nil
 }
 
 // displayDate returns localized date string for displaying in templates

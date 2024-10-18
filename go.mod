@@ -6,6 +6,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gopherlibs/feedhub v1.1.0
 	github.com/microcosm-cc/bluemonday v1.0.2
+	github.com/pkg/errors v0.8.0
 	github.com/spf13/cobra v1.0.0
 	gopkg.in/russross/blackfriday.v2 v2.0.0
 )

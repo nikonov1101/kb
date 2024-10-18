@@ -1,12 +1,15 @@
 package tool
 
 import (
+	"os"
+	"path"
 	"time"
 
 	"github.com/gopherlibs/feedhub/feedhub"
+	"github.com/pkg/errors"
 )
 
-func generateFeeds(items []*Source) []byte {
+func GenerateRSSFeed(items []Source, destDir string, siteName string, baseURL string) error {
 	author := &feedhub.Author{
 		Name:  "Alex Nikonov",
 		Email: "alex@nikonov.tech",
@@ -16,28 +19,34 @@ func generateFeeds(items []*Source) []byte {
 		// seems like it's better to sign your blog with your name,
 		// at least in people' RSS feeds.
 		Title:       "alex nikonov",
-		Link:        &feedhub.Link{Href: rssFeedURL},
-		Description: siteDescription,
+		Link:        &feedhub.Link{Href: baseURL},
+		Description: siteName,
 		Author:      author,
 		Created:     time.Now().UTC(),
 	}
 
-	for _, it := range items {
-		if it.visibility == published {
+	for _, note := range items {
+		if note.Visibility == Published {
 			feed.Items = append(feed.Items, &feedhub.Item{
-				Title:       it.title,
-				Description: it.title,
-				Link:        &feedhub.Link{Href: rssFeedURL + it.pageURI()},
+				Title:       note.Title,
+				Description: note.Title,
+				Link:        &feedhub.Link{Href: note.URL(baseURL)},
 				Author:      author,
-				Created:     it.date,
-				Content:     string(it.html),
+				Created:     note.Date,
+				Content:     string(note.html),
 			})
 		}
 	}
 
 	atom, err := feed.ToAtom()
 	if err != nil {
-		panic("failed to marshal feed: " + err.Error())
+		return errors.Wrap(err, "generate atom feed")
 	}
-	return []byte(atom)
+
+	atomFeedPath := path.Join(destDir, "atom.xml")
+	if err := os.WriteFile(atomFeedPath, []byte(atom), 0o644); err != nil {
+		return errors.Wrapf(err, "write %s", atomFeedPath)
+	}
+
+	return nil
 }

@@ -2,37 +2,44 @@ package tool
 
 import (
 	"fmt"
+	"log"
 	"net/http"
-	"os/exec"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 )
 
-func Serve(src, dst string, listenAddr string, openURL string, withPrivate bool) error {
-	if err := Generate(src, dst, withPrivate); err != nil {
+// Serve site content on given listenAddr, re-generate each time content of src directory changed.
+func Serve(src, dst, listenAddr, siteName, baseURL string, withPrivate bool) error {
+	generateAll := func() error {
+		list, err := ListSources(src, withPrivate)
+		if err != nil {
+			return errors.Wrapf(err, "list sources in %s", src)
+		}
+		if err := GeneratePages(list, dst, siteName, baseURL); err != nil {
+			return errors.Wrap(err, "generate pages")
+		}
+		if err := GenerateIndex(list, dst, siteName); err != nil {
+			return errors.Wrap(err, "generate index")
+		}
+		return nil
+	}
+
+	if err := generateAll(); err != nil {
 		return err
 	}
 
-	fmt.Printf("Starting http server on %s...\n", green(listenAddr))
-	http.Handle("/", http.FileServer(http.Dir(dst)))
-
 	watchFs(src, func(s string) {
-		fmt.Printf("\nfsnotify: write event on %s, generating...\n", yellow(s))
-		if err := Generate(src, dst, withPrivate); err != nil {
-			fmt.Printf("  Generate() failed: %v\n", err)
+		if err := generateAll(); err != nil {
+			log.Printf("generate all: error: %v", err)
 		}
 	})
 
-	// note: macos only
-	if err := exec.Command("/usr/bin/open", openURL).Run(); err != nil {
-		fmt.Printf("failed to invoke `open` command: %v\n", err)
-	}
-
+	http.Handle("/", http.FileServer(http.Dir(dst)))
 	return http.ListenAndServe(listenAddr, nil)
 }
 
 func watchFs(dir string, onWrite func(string)) {
-	fmt.Printf("Starting fs watcher on %s\n", green(dir))
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		fmt.Printf("fsnotify: failed to create watcher: %v", err)
@@ -53,13 +60,13 @@ func watchFs(dir string, onWrite func(string)) {
 				if !ok {
 					return
 				}
-				fmt.Printf("fsnotify err: %v\n", err)
+				log.Printf("fsnotify err: %v\n", err)
 			}
 		}
 	}()
 
 	if err := w.Add(dir); err != nil {
-		fmt.Printf("fsnotify: failed to add event watcher: %v", err)
+		log.Printf("fsnotify: failed to add event watcher: %v", err)
 		return
 	}
 }
