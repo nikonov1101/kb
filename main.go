@@ -106,11 +106,14 @@ func main() {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			isPrivate := cmd.Flag("private").Value.String() == "true"
+			isRandomName := cmd.Flag("rand").Value.String() == "true"
 			isEdit := cmd.Flag("edit").Value.String() == "true"
 			isOpenBrowser := cmd.Flag("web").Value.String() == "true"
 
-			name := uuid.New().String()
-			if !isPrivate {
+			var name string
+			if isRandomName {
+				name = uuid.New().String()
+			} else {
 				if len(args) != 1 {
 					return errors.New("accepts 1 arg(s), received 0")
 				}
@@ -156,7 +159,8 @@ func main() {
 		},
 	}
 	newCmd.PersistentFlags().String("addr", "127.0.0.1:8000", "address to listen to")
-	newCmd.PersistentFlags().Bool("private", false, "render private notes")
+	newCmd.PersistentFlags().Bool("private", true, "create as private or public")
+	newCmd.PersistentFlags().Bool("rand", false, "use random temporary id")
 	newCmd.PersistentFlags().Bool("edit", true, "open new note in editor")
 	newCmd.PersistentFlags().Bool("web", false, "open a browser with new note")
 
