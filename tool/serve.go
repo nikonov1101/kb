@@ -47,15 +47,25 @@ func watchFs(dir string, onWrite func(string)) {
 	}
 
 	go func() {
+		log.Printf("watching %q for changes...", dir)
 		for {
 			select {
 			case evt, ok := <-w.Events:
-				if !ok {
+				switch {
+				case !ok:
 					return
-				}
-				if evt.Op&fsnotify.Write == fsnotify.Write {
+				// handle normal save, like sublime-text does
+				case evt.Op&fsnotify.Write == fsnotify.Write:
 					onWrite(evt.Name)
+					return
+				// handle vim-like save when temporary file with .ext~ is used
+				case evt.Op&fsnotify.Create == fsnotify.Create:
+					if evt.Name[len(evt.Name)-1] != '~' {
+						onWrite(evt.Name)
+						return
+					}
 				}
+
 			case err, ok := <-w.Errors:
 				if !ok {
 					return
