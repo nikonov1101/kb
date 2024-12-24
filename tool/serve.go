@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
@@ -54,15 +55,9 @@ func watchFs(dir string, onWrite func(string)) {
 				switch {
 				case !ok:
 					return
-				// handle normal save, like sublime-text does
-				case evt.Op&fsnotify.Write == fsnotify.Write:
-					onWrite(evt.Name)
-					return
-				// handle vim-like save when temporary file with .ext~ is used
-				case evt.Op&fsnotify.Create == fsnotify.Create:
-					if evt.Name[len(evt.Name)-1] != '~' {
+				case evt.Has(fsnotify.Write) || evt.Has(fsnotify.Create):
+					if strings.HasSuffix(evt.Name, ".md") {
 						onWrite(evt.Name)
-						return
 					}
 				}
 

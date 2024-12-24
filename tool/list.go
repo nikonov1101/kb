@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 // ListSources return sorted list of notes in the source directory
@@ -19,7 +20,7 @@ func ListSources(root string, withPrivate bool) ([]Source, error) {
 func listSources(root string, withPrivate bool) ([]Source, error) {
 	var sourceFiles []Source
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() && info.Name()[0] != '.' {
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".md") {
 			source, err := loadSourceFile(path)
 			if err != nil {
 				return err
