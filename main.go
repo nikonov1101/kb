@@ -17,31 +17,20 @@ import (
 	"github.com/nikonov1101/kb/version"
 )
 
-var (
-	rootDir  = "/Users/alex/src/kb"
-	baseURL  = "http://localhost:8000/"
-	siteName = "Making computers fun again"
-)
-
-func init() {
-	if v := os.Getenv("KB_URL"); v != "" {
-		baseURL = v
-	}
-	if v := os.Getenv("KB_NAME"); v != "" {
-		siteName = v
-	}
-	if v := os.Getenv("KB_ROOT"); v != "" {
-		rootDir = v
-	}
-}
-
 func main() {
 	rootCmd := &cobra.Command{
 		Use: "kb",
 	}
 
-	srcDir := rootCmd.PersistentFlags().String("src", filepath.Join(rootDir, "/src"), "directory with markdown files")
-	dstDir := rootCmd.PersistentFlags().String("www", filepath.Join(rootDir, "/www"), "directory for generated html files")
+	absp, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	srcDir := rootCmd.PersistentFlags().String("src", absp, "directory with markdown files")
+	dstDir := rootCmd.PersistentFlags().String("www", filepath.Join(absp, "/www"), "directory for generated html files")
+	baseURL := rootCmd.PersistentFlags().String("base-url", "http://localhost:8000", "base site URL")
+	siteName := rootCmd.PersistentFlags().String("site-name", "Make computers fun again", "site name")
 
 	listCmd := &cobra.Command{
 		Use:   "list",
@@ -63,7 +52,7 @@ func main() {
 					pre = colors.BRed(pre)
 				}
 
-				fmt.Printf("%s :: %s :: %s\n", pre, colors.BWhite(file.Title), file.URL(baseURL))
+				fmt.Printf("%s :: %s :: %s\n", pre, colors.BWhite(file.Title), file.URL(*baseURL))
 			}
 
 			return nil
@@ -81,17 +70,17 @@ func main() {
 				return err
 			}
 
-			fmt.Printf("source: %s, files %s", colors.Green(*srcDir), colors.Yellow(strconv.Itoa(len(list))))
+			fmt.Printf("source: %s, files %s\n", colors.Green(*srcDir), colors.Yellow(strconv.Itoa(len(list))))
 
-			if err := tool.GeneratePages(list, *dstDir, siteName, baseURL); err != nil {
+			if err := tool.GeneratePages(list, *dstDir, *siteName, *baseURL); err != nil {
 				return errors.Wrap(err, "generate pages")
 			}
 
-			if err := tool.GenerateIndex(list, *dstDir, siteName); err != nil {
+			if err := tool.GenerateIndex(list, *dstDir, *siteName); err != nil {
 				return errors.Wrap(err, "generate index")
 			}
 
-			if err := tool.GenerateRSSFeed(list, *dstDir, siteName, baseURL); err != nil {
+			if err := tool.GenerateRSSFeed(list, *dstDir, *siteName, *baseURL); err != nil {
 				return errors.Wrap(err, "generate RSS")
 			}
 
@@ -153,7 +142,7 @@ func main() {
 				}()
 
 				fmt.Printf("starting web-server on %s ...\n", colors.BGreen("http://"+listen))
-				return tool.Serve(*srcDir, *dstDir, listen, siteName, baseURL, isPrivate)
+				return tool.Serve(*srcDir, *dstDir, listen, *siteName, *baseURL, isPrivate)
 			}
 			return nil
 		},
@@ -183,7 +172,7 @@ func main() {
 			}
 
 			fmt.Printf("starting web-server on %s ...\n", colors.BGreen("http://"+listen))
-			return tool.Serve(*srcDir, *dstDir, listen, siteName, baseURL, isPrivate)
+			return tool.Serve(*srcDir, *dstDir, listen, *siteName, *baseURL, isPrivate)
 		},
 	}
 	serveCmd.PersistentFlags().String("addr", "127.0.0.1:8000", "address to listen to")
