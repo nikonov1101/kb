@@ -6,6 +6,7 @@ import _ "embed"
 var Page []byte
 
 const Intro = `<p class="me">
-Heyo! I'm Alex, a humble software engineer, currently working at Tabby.
-I'm interested in how systems work under the hood, so I spend my time exploring Linux, networking, and other low-level stuff.
-Check out my curiosity playground below.</p>`
+    Heyo! I'm Alex, a humble software engineer, currently working on my own projects:
+    writing an x86 bootloader, learning Linux internals and OS design, and exploring other computer science topics.
+    Check out my curiosity playground below.
+</p>`
