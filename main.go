@@ -91,7 +91,7 @@ func main() {
 
 	newCmd := &cobra.Command{
 		Use:   "new <name>",
-		Short: fmt.Sprintf("Create new empty note and open in %q", tool.EDITOR),
+		Short: fmt.Sprintf("Create new empty note and open in %q", tool.Editor()),
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			isPrivate := cmd.Flag("private").Value.String() == "true"
@@ -213,8 +213,14 @@ func openBrowser(url string) error {
 }
 
 func openEditor(filePath string) error {
-	if err := exec.Command(tool.EDITOR, "-a", filePath).Run(); err != nil {
-		return errors.Wrapf(err, "open %q in editor", filePath)
+	editor := tool.Editor()
+	cmd := exec.Command(editor, filePath)
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrapf(err, "open %q in %q", filePath, editor)
 	}
 	return nil
 }
