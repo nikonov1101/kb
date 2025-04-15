@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-//go:generate /bin/bash -c "date -u > build_time"
+//go:generate /bin/sh -c "date -u > build_time"
 //go:embed build_time
 var buildTime string
 
@@ -14,7 +14,7 @@ func BuildTime() string {
 	return strings.TrimSpace(buildTime)
 }
 
-//go:generate /bin/bash -c "git describe --long --always --dirty --broken --abbrev=8 > build_git"
+//go:generate /bin/sh -c "git describe --long --always --dirty --broken --abbrev=8 > build_git"
 //go:embed build_git
 var buildCommit string
 
