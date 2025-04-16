@@ -184,9 +184,13 @@ func main() {
 		Short: "show version, build info, and current configuration parameters",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.Printf("Built with: %s\n", version.CompillerVersion())
-			cmd.Printf("Built at:   %s\n", version.BuildTime())
-			cmd.Printf("Version:    %s\n", version.BuildCommit())
-			cmd.Printf("Source dir: %s\n", *srcDir)
+			cmd.Printf("Built at:   %s\n", version.BuildTime)
+			cmd.Printf("Commit:     %s\n", version.Commit)
+			cmd.Println("---------")
+			cmd.Printf("Site Name: %s\n", *siteName)
+			cmd.Printf("Base URL:  %s\n", *baseURL)
+			cmd.Printf("Source:    %s\n", *srcDir)
+			cmd.Printf("WWW out:   %s\n", *dstDir)
 			return nil
 		},
 	}
