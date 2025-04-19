@@ -1,35 +1,34 @@
-# Contributor: xandrow indira <xandrow89@gmail.com> 
+# Contributor: xandrow indira <xandrow89@gmail.com>
 # Maintainer: Alex Nikonov <alex@nikonov.tech>
 pkgname=kb
 pkgver=1.0.3
-pkgrel=1
+pkgrel=2
 pkgdesc="a simple static site generator"
 url="https://github.com/nikonov1101/kb"
 arch="all"
 license="MIT"
 makedepends="go make"
-subpackages="$pkgname-doc"
+# check: no test suite provided
+# net: allow "go build" to download dependencies from github
+options="!check net"
+builddir="$srcdir/$pkgname-$pkgver/"
 source="$pkgname-$pkgver.tar.gz::https://github.com/nikonov1101/kb/archive/v$pkgver.tar.gz"
 
-builddir="$srcdir/$pkgname-$pkgver/"
 
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
 
 
 build() {
-	export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
-	export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
-	export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+	# Replace with proper build command(s).
+	# Remove if there is no build command.
 	VERSION="$pkgver-apkbuild" make build
 }
 
-check() {
-	# Remove and add !check option if there is no check command.
-	./kb version
-}
 
 package() {
 	install -m755 -D kb -t "$pkgdir"/usr/bin/
-	install -Dm644 LICENSE "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
 }
 
 sha512sums="
