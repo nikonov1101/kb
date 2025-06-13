@@ -42,14 +42,18 @@ func GeneratePages(notes []Source, destDir string, siteName string, baseURL stri
 
 // GenerateIndex generate index page with links to notes given as `fs`
 func GenerateIndex(sources []Source, destDir string, siteName string) error {
-	const template = `<li><span class="post-date">%s</span>&nbsp;<a href="%s">%s</a></li>`
+	const template = `<div class="post"><a href="%s">%s</a><span class="post-date">%s</span></div>`
 
-	linksHTML := "<ul>"
+	var linksHTML string
 	for i := len(sources) - 1; i >= 0; i-- {
 		src := sources[i]
-		linksHTML += fmt.Sprintf(template, displayDate(src.Date), src.HTMLFileName(), src.Title)
+		linksHTML += fmt.Sprintf(
+			template,
+			src.HTMLFileName(),
+			src.Title,
+			displayDate(src.Date),
+		) + "\n"
 	}
-	linksHTML += "</ul>"
 
 	index := Source{
 		html:    []byte(linksHTML),
