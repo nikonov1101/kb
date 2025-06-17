@@ -11,13 +11,12 @@ import (
 	"time"
 
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/nikonov1101/kb/tool/templates"
 	"github.com/pkg/errors"
 	"gopkg.in/russross/blackfriday.v2"
 )
 
-// GeneratePages site content using notes in srcDir, saving html files in dstDir
-func GeneratePages(notes []Source, destDir string, siteName string, baseURL string) error {
+// BuildSite site content using notes in srcDir, saving html files in dstDir
+func BuildSite(posts []Source, destDir string, siteName string, baseURL string) error {
 	if err := os.RemoveAll(destDir); err != nil {
 		return fmt.Errorf("failed to clean the dst dir: %v", err)
 	}
@@ -26,41 +25,23 @@ func GeneratePages(notes []Source, destDir string, siteName string, baseURL stri
 		return fmt.Errorf("failed to create the dst dir: %v", err)
 	}
 
-	for _, src := range notes {
-		// add content html to the rest of the page
-		page := generatePage(siteName, src)
-		// where to store HTML result
-		out := src.HTMLFileName()
+	for _, src := range posts {
+		page, err := src.Render(siteName, nil)
+		if err != nil {
+			return errors.Wrapf(err, "render page from %q", src.Path)
+		}
 
-		if err := os.WriteFile(path.Join(destDir, out), page, 0o644); err != nil {
-			return fmt.Errorf("failed to write to %s: %v", out, err)
+		dstPath := path.Join(destDir, src.HTMLFileName())
+		if err := os.WriteFile(dstPath, page, 0o644); err != nil {
+			return fmt.Errorf("failed to write to %s: %v", dstPath, err)
 		}
 	}
 
-	return nil
-}
-
-// GenerateIndex generate index page with links to notes given as `fs`
-func GenerateIndex(sources []Source, destDir string, siteName string) error {
-	const template = `<div class="post"><a href="%s">%s</a><span class="post-date">%s</span></div>`
-
-	var linksHTML string
-	for i := len(sources) - 1; i >= 0; i-- {
-		src := sources[i]
-		linksHTML += fmt.Sprintf(
-			template,
-			src.HTMLFileName(),
-			src.Title,
-			displayDate(src.Date),
-		) + "\n"
+	page, err := (Source{}).Render(siteName, posts)
+	if err != nil {
+		return errors.Wrap(err, "render index page")
 	}
 
-	index := Source{
-		html:    []byte(linksHTML),
-		isIndex: true,
-	}
-
-	page := generatePage(siteName, index)
 	indexPath := path.Join(destDir, "index.html")
 	if err := os.WriteFile(indexPath, page, 0o644); err != nil {
 		return errors.Wrapf(err, "write %s", indexPath)
@@ -173,34 +154,6 @@ func markdownToHTML(data []byte) []byte {
 	p.AddTargetBlankToFullyQualifiedLinks(true)
 
 	return p.SanitizeBytes(unsafe)
-}
-
-// generatePage makes a complete web-page from given source
-func generatePage(siteName string, src Source) []byte {
-	title := src.Title
-	pageTitle := fmt.Sprintf(`<div class="heading"><h1>%s</h1></div>`, title)
-	about := ""
-
-	if src.isIndex {
-		title = siteName
-		pageTitle = ""
-		about = templates.Intro
-	}
-
-	timeStr := ""
-	if !src.Date.IsZero() {
-		// do not render date string for index page
-		timeStr = src.Date.Format(dateFormat)
-	}
-
-	tmpl := bytes.ReplaceAll(templates.Page, []byte("${TITLE}"), []byte(title))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${PAGE_TITLE}"), []byte(pageTitle))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${DATE}"), []byte(displayDate(src.Date)))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${CONTENT}"), src.html)
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${TIMESTAMP}"), []byte(timeStr))
-	tmpl = bytes.ReplaceAll(tmpl, []byte("${INDEX_ABOUT}"), []byte(about))
-
-	return tmpl
 }
 
 // displayDate returns localized date string for displaying in templates

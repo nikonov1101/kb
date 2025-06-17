@@ -1,14 +1,37 @@
 package templates
 
-import _ "embed"
+import (
+	_ "embed"
+	"html/template"
+)
 
-//go:embed page.html
-var Page []byte
+type Args struct {
+	Title string
+	Date  string
 
-// TODO(nikonov): consider using two templates
+	Posts     []Post
+	OrContent template.HTML
+}
 
-const Intro = `<div class="me">
-    Heyo! I'm Alex, a humble software engineer, currently working on my own projects:
-    writing an x86 bootloader, learning Linux internals and OS design, and exploring other computer science topics.
-    Check out my curiosity playground below.
-</div>`
+type Post struct {
+	Title string
+	Date  string
+
+	Href string
+}
+
+//go:embed page.tmpl
+var tmpl string
+
+var _parsed *template.Template
+
+func Load() *template.Template {
+	if _parsed == nil {
+		t, err := template.New("page").Parse(tmpl)
+		if err != nil {
+			panic(t)
+		}
+		_parsed = t
+	}
+	return _parsed
+}

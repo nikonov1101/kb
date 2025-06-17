@@ -71,13 +71,10 @@ func main() {
 			}
 
 			fmt.Printf("source: %s, files %s\n", colors.Green(*srcDir), colors.Yellow(strconv.Itoa(len(list))))
+			fmt.Printf("  dest: %s\n", colors.Yellow(*dstDir))
 
-			if err := tool.GeneratePages(list, *dstDir, *siteName, *baseURL); err != nil {
+			if err := tool.BuildSite(list, *dstDir, *siteName, *baseURL); err != nil {
 				return errors.Wrap(err, "generate pages")
-			}
-
-			if err := tool.GenerateIndex(list, *dstDir, *siteName); err != nil {
-				return errors.Wrap(err, "generate index")
 			}
 
 			if err := tool.GenerateRSSFeed(list, *dstDir, *siteName, *baseURL); err != nil {

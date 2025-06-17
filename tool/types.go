@@ -1,6 +1,12 @@
 package tool
 
-import "time"
+import (
+	"bytes"
+	"html/template"
+	"time"
+
+	"github.com/nikonov1101/kb/tool/templates"
+)
 
 const (
 	Published = "published"
@@ -34,9 +40,6 @@ type Source struct {
 	markdown []byte
 	// cached generated html
 	html []byte
-	// isIndex tells renderer that this page is index page,
-	// so extra rules might be applied.
-	isIndex bool
 }
 
 func (s *Source) HTMLFileName() string {
@@ -45,4 +48,39 @@ func (s *Source) HTMLFileName() string {
 
 func (s Source) URL(root string) string {
 	return root + "/" + s.HTMLFileName()
+}
+
+func (s Source) Render(siteName string, posts []Source) ([]byte, error) {
+	args := templates.Args{
+		Title:     s.Title,
+		OrContent: template.HTML(s.html),
+	}
+
+	if args.Title == "" {
+		args.Title = siteName
+	}
+
+	if !s.Date.IsZero() {
+		args.Date = s.Date.Format(dateFormat)
+	}
+
+	// index page
+	if len(posts) > 0 {
+		args.Title = siteName
+		for _, post := range posts {
+			args.Posts = append(args.Posts, templates.Post{
+				Title: post.Title,
+				Href:  post.HTMLFileName(),
+				Date:  post.Date.Format(dateFormat),
+			})
+		}
+	}
+
+	tmpl := templates.Load()
+	outb := bytes.NewBuffer(make([]byte, 1024))
+	if err := tmpl.Execute(outb, args); err != nil {
+		// TODO(nikonov): RETURN ERROR
+		panic(err)
+	}
+	return outb.Bytes(), nil
 }

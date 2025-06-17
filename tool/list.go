@@ -36,7 +36,7 @@ func listSources(root string, withPrivate bool) ([]Source, error) {
 	})
 
 	sort.SliceStable(sourceFiles, func(i, j int) bool {
-		return sourceFiles[i].Num < sourceFiles[j].Num
+		return sourceFiles[i].Num > sourceFiles[j].Num
 	})
 
 	return sourceFiles, err

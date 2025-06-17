@@ -17,11 +17,8 @@ func Serve(src, dst, listenAddr, siteName, baseURL string, withPrivate bool) err
 		if err != nil {
 			return errors.Wrapf(err, "list sources in %s", src)
 		}
-		if err := GeneratePages(list, dst, siteName, baseURL); err != nil {
-			return errors.Wrap(err, "generate pages")
-		}
-		if err := GenerateIndex(list, dst, siteName); err != nil {
-			return errors.Wrap(err, "generate index")
+		if err := BuildSite(list, dst, siteName, baseURL); err != nil {
+			return errors.Wrap(err, "build site")
 		}
 		return nil
 	}

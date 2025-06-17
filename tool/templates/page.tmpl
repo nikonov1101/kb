@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>${TITLE}</title>
+    <title>{{.Title}}</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
         html {
             font-family: "Courier New", Courier, monospace;
             margin: 0 auto;
-            max-width: 1080px;
+            max-width: 999px;
             background: black;
             color: #aaa;
         }
@@ -37,10 +37,9 @@
             padding: 4px 0;
         }
         .post-date { flex-shrink: 0; }
-        .me  {
-            text-align: justify;
-        }
-        .timestamp { text-align:center; }
+        .about { text-align: justify; }
+        .date  { text-align: center; }
+
          h1, h2, h3, h4, h5, h6 {  text-align: center; color: white; }
          h1 { font-size: 1.5em; }
          h2 { font-size: 1.4em; }
@@ -90,10 +89,24 @@
         <a target="_blank" href="https://t.me/nikonov1101">telegram</a>
     </div>
 
-    ${INDEX_ABOUT}
-    ${PAGE_TITLE}
-    <div class="timestamp">${TIMESTAMP}</div>
-    <div class="content">${CONTENT}</div>
+    {{ if .Posts }}
+    <div class="about">
+        Heyo! I'm Alex, village guy against the common sense.
+        Check out my curiosity playground below.
+    </div>
+    <div class="content">
+        {{ range .Posts }}
+        <div class="post">
+          <a href="{{ .Href }}">{{ .Title }}</a>
+          <span class="post-date">{{ .Date }}</span>
+          </div>
+        {{- end }}
+    </div>
+    {{- else }}
+    <div class="title"><h1>{{ .Title }}</h1></div>
+    <div class="date">{{ .Date }}</div>
+    <div class="content">{{ .OrContent }}</div>
+    {{- end }}
 </div>
 </body>
 </html>
