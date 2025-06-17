@@ -11,14 +11,14 @@ import (
 
 func GenerateRSSFeed(items []Source, destDir string, siteName string, baseURL string) error {
 	author := &feedhub.Author{
-		Name:  "Alex Nikonov",
+		Name:  "ALex Nikonov",
 		Email: "alex@nikonov.tech",
 	}
 
 	feed := feedhub.Feed{
 		// seems like it's better to sign your blog with your name,
 		// at least in people' RSS feeds.
-		Title:       "alex nikonov",
+		Title:       "ALex Nikonov",
 		Link:        &feedhub.Link{Href: baseURL},
 		Description: siteName,
 		Author:      author,
@@ -42,10 +42,19 @@ func GenerateRSSFeed(items []Source, destDir string, siteName string, baseURL st
 	if err != nil {
 		return errors.Wrap(err, "generate atom feed")
 	}
+	rss, err := feed.ToRss()
+	if err != nil {
+		return errors.Wrap(err, "generate rss feed")
+	}
 
-	atomFeedPath := path.Join(destDir, "atom.xml")
-	if err := os.WriteFile(atomFeedPath, []byte(atom), 0o644); err != nil {
-		return errors.Wrapf(err, "write %s", atomFeedPath)
+	a := path.Join(destDir, "atom.xml")
+	if err := os.WriteFile(a, []byte(atom), 0o644); err != nil {
+		return errors.Wrapf(err, "write atom feed to %q", a)
+	}
+
+	r := path.Join(destDir, "rss.xml")
+	if err := os.WriteFile(r, []byte(rss), 0o644); err != nil {
+		return errors.Wrapf(err, "write rss feed to %q", r)
 	}
 
 	return nil
